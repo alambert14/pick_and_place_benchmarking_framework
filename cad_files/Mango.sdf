@@ -1,0 +1,36 @@
+<sdf version="1.7">
+  <model name="Mango">
+    <link name="base_link">
+      <inertial>
+        <mass>0.2</mass>
+        <inertia>
+          <ixx>4.202e-04</ixx>
+          <ixy>0.000e+00</ixy>
+          <ixz>0.000e+00</ixz>
+          <iyy>3.911e-04</iyy>
+          <iyz>0.000e+00</iyz>
+          <izz>2.714e-04</izz>
+        </inertia>
+      </inertial>
+      <visual name="Mango_visual">
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>Mango_processed.obj</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <diffuse>0.96 0.74 0.086 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name="Mango_collision">
+        <pose>5.624e-06 1.174e-03 -1.422e-03 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>8.525e-02 9.496e-02 1.273e-01</size>
+          </box>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

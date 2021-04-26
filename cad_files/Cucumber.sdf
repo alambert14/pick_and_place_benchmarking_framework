@@ -1,0 +1,36 @@
+<sdf version="1.7">
+  <model name="Cucumber">
+    <link name="base_link">
+      <inertial>
+        <mass>0.18</mass>
+        <inertia>
+          <ixx>1.238e-03</ixx>
+          <ixy>0.000e+00</ixy>
+          <ixz>0.000e+00</ixz>
+          <iyy>1.216e-03</iyy>
+          <iyz>0.000e+00</iyz>
+          <izz>6.553e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name="Cucumber_visual">
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>Cucumber_processed.obj</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <diffuse>0.36 0.47 0.098 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name="Cucumber_collision">
+        <pose>-4.669e-04 1.019e-03 -8.138e-04 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>3.803e-02 5.406e-02 2.822e-01</size>
+          </box>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>
