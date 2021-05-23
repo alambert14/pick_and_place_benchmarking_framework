@@ -24,11 +24,11 @@
         </material>
       </visual>
       <collision name="Mango_collision">
-        <pose>5.624e-06 1.174e-03 -1.422e-03 0 0 0</pose>
         <geometry>
-          <box>
-            <size>8.525e-02 9.496e-02 1.273e-01</size>
-          </box>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>Mango_processed.obj</uri>
+          </mesh>
         </geometry>
       </collision>
     </link>

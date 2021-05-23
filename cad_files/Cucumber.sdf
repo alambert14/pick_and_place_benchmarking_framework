@@ -24,11 +24,11 @@
         </material>
       </visual>
       <collision name="Cucumber_collision">
-        <pose>-4.669e-04 1.019e-03 -8.138e-04 0 0 0</pose>
         <geometry>
-          <box>
-            <size>3.803e-02 5.406e-02 2.822e-01</size>
-          </box>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>Cucumber_processed.obj</uri>
+          </mesh>
         </geometry>
       </collision>
     </link>

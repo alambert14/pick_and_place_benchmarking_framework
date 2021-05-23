@@ -40,7 +40,7 @@ for idx in range(len(object_names)):
 
 
 #%%
-name = object_names[0]
+name = object_names[2]
 
 root = et.Element("sdf", version="1.7")
 model = et.SubElement(root, "model", name=name)
@@ -86,18 +86,12 @@ visual_material_diffuse.text += '1.0'
 
 # collision
 collision = et.SubElement(link, "collision", name=name + "_collision")
-collision_pose = et.SubElement(collision, "pose")
-xc, yc, zc = object_meshes[name].bounding_box.center_mass
-collision_pose.text = ('{:.3e}'.format(xc) + ' '
-                       + '{:.3e}'.format(yc) + ' '
-                       + '{:.3e}'.format(zc) + ' 0 0 0')
 collision_g = et.SubElement(collision, "geometry")
-collision_g_box = et.SubElement(collision_g, "box")
-collision_g_box_size = et.SubElement(collision_g_box, "size")
-collision_g_box_size.text = ('{:.3e}'.format(x) + ' ' +
-                             '{:.3e}'.format(y) + ' ' +
-                             '{:.3e}'.format(z))
-
+collision_g_mesh = et.SubElement(collision_g, "mesh")
+collision_g_mesh_scale = et.SubElement(collision_g_mesh, "scale")
+collision_g_mesh_scale.text = "1 1 1"
+collision_g_mesh_uri = et.SubElement(collision_g_mesh, "uri")
+collision_g_mesh_uri.text = name + "_processed.obj"
 
 sdf_binary = et.tostring(root, pretty_print=True)
 # print(sdf_binary.decode('utf-8'))

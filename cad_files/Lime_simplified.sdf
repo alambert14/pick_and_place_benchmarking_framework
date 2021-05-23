@@ -1,0 +1,36 @@
+<sdf version="1.7">
+  <model name="Lime">
+    <link name="base_link">
+      <inertial>
+        <mass>0.045</mass>
+        <inertia>
+          <ixx>1.641e-05</ixx>
+          <ixy>0.000e+00</ixy>
+          <ixz>0.000e+00</ixz>
+          <iyy>1.638e-05</iyy>
+          <iyz>0.000e+00</iyz>
+          <izz>1.201e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name="Lime_visual">
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>Lime_processed_simple_vis.obj</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <diffuse>0.75 1.0 0.0 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name="collision_0000">
+        <geometry>
+          <mesh>
+            <uri>Lime_processed_parts/Lime_processed_convex_piece_000.obj</uri>
+            <drake:declare_convex xmlns:drake="drake.mit.edu"/>
+          </mesh>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>
