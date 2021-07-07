@@ -32,7 +32,8 @@ from gripper_pose_controller import (GripperPoseController,
 zmq_url = "tcp://127.0.0.1:6000"
 
 # object SDFs.
-object_names = ['Lime', 'Cucumber', 'Mango']
+# object_names = ['Lime', 'Cucumber', 'Mango']
+object_names = ['Lime']
 object_sdfs = [os.path.join(os.getcwd(), 'cad_files', name + '_simplified.sdf')
                for name in object_names]
 
@@ -460,7 +461,7 @@ X_WB = grasp_sampler.sample_grasp_candidates(
 #%%
 # start gripper from 0.3m above the grasp, move in, grasp and pick up.
 n_knots = 4
-t_knots = [0, 5, 6, 11]
+t_knots = [0, 2.5, 3.5, 7]
 finger_setpoint_knots = np.array([[0.1, 0.01, 0.01, 0.01]])
 p_WB_knots = np.zeros((4, 3))
 p_WB_knots[0] = X_WB.translation() + np.array([0, 0, 0.3])
@@ -499,7 +500,7 @@ plant_env.SetPositions(context_plant_new, schunk_model, schunk_position)
 
 env.Publish(context_new)
 
-#%% sim
+# sim
 sim = Simulator(env, context_new)
 viz = env.GetSubsystemByName('meshcat_visualizer')
 viz.reset_recording()
