@@ -160,7 +160,7 @@ def make_environment_model(
         directive = FindResource("models/two_bins_w_cameras.yaml")
 
     builder = DiagramBuilder()
-    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=0.0005)
+    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=5e-4)
     parser = Parser(plant)
     AddPackagePaths(parser)
     ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
@@ -448,13 +448,14 @@ class GraspSampler:
                 X_Gs.append(X_G)
 
         indices = np.asarray(costs).argsort()[:5]
-
-        if draw_grasp_candidates:
-            for i in indices:
+        X_Gs_best = []
+        for i in indices:
+            X_Gs_best.append(X_Gs[i])
+            if draw_grasp_candidates:
                 draw_grasp_candidate(X_Gs[i], prefix=f"{i}th best",
                                      draw_frames=False)
 
-        return X_Gs[indices[0]]
+        return X_Gs_best
 
 
 #%%
@@ -469,13 +470,13 @@ v.delete()
 
 # build environment and grasp sampler.
 env, context_env = make_environment_model(
-    directive=directive_file, rng=rng, draw=True, num_objects=5,
+    directive=directive_file, rng=rng, draw=True, num_objects=7,
     add_gripper_control=True)
 grasp_sampler = GraspSampler(env)
 
 # sample some grasps.
-X_WB = grasp_sampler.sample_grasp_candidates(
-    context_env, draw_grasp_candidates=False)
+X_Gs_best = grasp_sampler.sample_grasp_candidates(
+    context_env, draw_grasp_candidates=True)
 
 #%%
 # start gripper from 0.3m above the grasp, move in, grasp and pick up.
@@ -483,6 +484,7 @@ n_knots = 4
 t_knots = [0, 2.5, 3.5, 7]
 finger_setpoint_knots = np.array([[0.1, 0.01, 0.01, 0.01]])
 p_WB_knots = np.zeros((4, 3))
+X_WB = X_Gs_best[1]
 p_WB_knots[0] = X_WB.translation() + np.array([0, 0, 0.3])
 p_WB_knots[1] = X_WB.translation()
 p_WB_knots[2] = X_WB.translation()
@@ -527,41 +529,5 @@ viz.start_recording()
 sim.AdvanceTo(t_knots[-1])
 viz.stop_recording()
 viz.publish_recording()
-
-
-#%%
-assert False
-from pydrake.all import (ExternallyAppliedSpatialForce, SpatialForce,)
-
-env, context_env = make_environment_model(
-    directive=directive_file, rng=rng,
-    draw=True, num_objects=5, add_gripper_control=True)
-
-render_system_with_graphviz(env, 'actauted_schunk.gz')
-
-
-plant_env = env.GetSubsystemByName('plant')
-context_plant = plant_env.GetMyContextFromRoot(context_env)
-
-gfc = env.GetSubsystemByName('gripper_finger_controller')
-context_gfc = gfc.GetMyContextFromRoot(context_env)
-gfc.get_input_port_desired_state().FixValue(context_gfc,
-    np.array([-0.02, 0.02, 0, 0]))
-
-gpc = env.GetSubsystemByName('gripper_pose_controller')
-context_gpc = gpc.GetMyContextFromRoot(context_env)
-
-rpy = RollPitchYaw(np.pi / 2, 0, 0)
-q_and_p = np.hstack([rpy.ToQuaternion().wxyz(), np.array([0, 0.5, 0])])
-gpc.pose_ref_input_port.FixValue(context_gpc, q_and_p)
-
-
-viz = env.GetSubsystemByName('meshcat_visualizer')
-sim = Simulator(env, context_env)
-viz.start_recording()
-sim.AdvanceTo(2.0)
-viz.stop_recording()
-viz.publish_recording()
-
 
 

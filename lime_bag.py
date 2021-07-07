@@ -1,7 +1,8 @@
 import os
 import numpy as np
 
-from pydrake.all import (LinearSpringDamper, MultibodyPlant, DiagramBuilder,
+from pydrake.all import (LinearSpringDamper, LinearBushingRollPitchYaw,
+                         MultibodyPlant, DiagramBuilder,
                          AddMultibodyPlantSceneGraph, Parser, RigidTransform,
                          ConnectMeshcatVisualizer, Simulator, Context,
                          ExternallyAppliedSpatialForce, SpatialForce)
@@ -18,10 +19,21 @@ def add_bag_of_lime(n_limes: int, l_spring: float, bag_index: int,
                    for i in range(n_limes)]
     for i in range(n_limes):
         for j in range(i + 1, n_limes):
+            # print(i, j)
+            p_Bq = np.array([0, 0, 0.0])
             plant.AddForceElement(
                 LinearSpringDamper(
-                    lime_bodies[i], np.zeros(3), lime_bodies[j], np.zeros(3),
-                    free_length=l_spring, stiffness=100, damping=10))
+                    lime_bodies[i], p_Bq, lime_bodies[j], p_Bq,
+                    free_length=l_spring, stiffness=100, damping=20))
+
+            # plant.AddForceElement(
+            #     LinearBushingRollPitchYaw(
+            #         frameA=lime_bodies[i].body_frame(),
+            #         frameC=lime_bodies[j].body_frame(),
+            #         torque_stiffness_constants=np.array([5, 5, 5.]),
+            #         torque_damping_constants=np.array([0.1, 0.1, 0.1]),
+            #         force_stiffness_constants=np.ones(3) * 10,
+            #         force_damping_constants=np.ones(3) * 1))
 
     return lime_bodies
 
@@ -51,7 +63,7 @@ def initialize_bag_of_lime(
         X_WBi.set_translation(p_WB0[i2] + np.array([0, 0, z_i]))
         plant.SetFreeBodyPose(context_plant, lime_bodies[i], X_WBi)
 
-
+#%%
 if __name__ == '__main__':
     #%%
     builder = DiagramBuilder()
@@ -60,7 +72,7 @@ if __name__ == '__main__':
 
     n_limes = 5
     l_spring = 0.08
-    lime_bodies = add_bag_of_lime(n_limes, l_spring, plant, parser)
+    lime_bodies = add_bag_of_lime(n_limes, l_spring, 0, plant, parser)
     plant.Finalize()
 
     viz = ConnectMeshcatVisualizer(builder, scene_graph)
