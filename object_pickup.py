@@ -12,13 +12,13 @@ from ipywidgets import Textarea
 from pydrake.all import (
     AddMultibodyPlantSceneGraph, ConnectMeshcatVisualizer,
     DiagramBuilder, RigidTransform, RotationMatrix,
-    CoulombFriction, FindResourceOrThrow, FixedOffsetFrame,
-    GeometryInstance, MeshcatContactVisualizer, Parser, PlanarJoint,
-    RandomGenerator, Simulator, ProcessModelDirectives, LoadModelDirectives
+    CoulombFriction, FindResourceOrThrow, Diagram,
+    GeometryInstance, MeshcatContactVisualizer, Parser, PidController,
+    RandomGenerator, Simulator, ProcessModelDirectives, LoadModelDirectives,
+    MatrixGain,
 )
+from pydrake.math import RollPitchYaw
 
-# Put Russ's manipulation repo on PYTHONPATH.
-from manipulation.jupyter_widgets import MakeJointSlidersThatPublishOnCallback
 from manipulation.scenarios import AddRgbdSensors
 from manipulation.utils import FindResource, AddPackagePaths
 from manipulation.meshcat_utils import draw_open3d_point_cloud, draw_points
@@ -150,7 +150,7 @@ def make_environment_model(
         directive=None, draw=False, rng=None, num_objects=0, bin_name="bin0",
         add_gripper_control=False):
     """
-    Make one model of the environment.gz, but the robot only gets to see the sensor
+    Make one model of the environment, but the robot only gets to see the sensor
      outputs.
     """
     if not directive:
@@ -170,6 +170,7 @@ def make_environment_model(
     AddRgbdSensors(builder, plant, scene_graph)
 
     if add_gripper_control:
+        # Gripper Pose Control
         schunk_body = plant.GetBodyByName('body')
         gpc = GripperPoseController(gripper_body_idx=schunk_body.index())
         builder.AddSystem(gpc)
@@ -183,9 +184,35 @@ def make_environment_model(
             gpc.spatial_force_output_port,
             plant.get_applied_spatial_force_input_port())
 
+        # Gripper Finger Control
+        schunk_model = plant.GetModelInstanceByName('gripper')
+        K_schunk = np.array([500, 500.])
+        D_schunk = np.array([10, 10.])
+        gfc = PidController(K_schunk, np.zeros(2), D_schunk)
+        gfc.set_name('gripper_finger_controller')
+
+        S = np.zeros((4, 17))
+        S[0, 7] = 1
+        S[1, 8] = 1
+        S[2, -2] = 1
+        S[3, -1] = 1
+        finger_state_selector = MatrixGain(S)
+        finger_state_selector.set_name('finger_state_selector')
+        builder.AddSystem(gfc)
+        builder.AddSystem(finger_state_selector)
+        builder.Connect(
+            gfc.get_output_port_control(),
+            plant.get_actuation_input_port(schunk_model))
+        builder.Connect(
+            plant.get_state_output_port(schunk_model),
+            finger_state_selector.get_input_port())
+        builder.Connect(
+            finger_state_selector.get_output_port(),
+            gfc.get_input_port_estimated_state())
+
     if draw:
         viz = ConnectMeshcatVisualizer(
-            builder, scene_graph, zmq_url=zmq_url, prefix="environment.gz")
+            builder, scene_graph, zmq_url=zmq_url, prefix="environment")
 
     diagram = builder.Build()
     context = diagram.CreateDefaultContext()
@@ -210,6 +237,18 @@ def make_environment_model(
         if draw:
             viz.start_recording()
 
+        if add_gripper_control:
+            # set initial gripper finger positions.
+            context_gfc = gfc.GetMyContextFromRoot(context)
+            gfc.get_input_port_desired_state().FixValue(
+                context_gfc, np.array([-0.05, 0.05, 0, 0]))
+
+            # set initial gripper pose.
+            context_gpc = gpc.GetMyContextFromRoot(context)
+            rpy = RollPitchYaw(np.pi / 2, 0, 0)
+            q_and_p = np.hstack(
+                [rpy.ToQuaternion().wxyz(), np.array([0, 0, 0.])])
+            gpc.pose_ref_input_port.FixValue(context_gpc, q_and_p)
         simulator.AdvanceTo(1.0)
 
         if draw:
@@ -316,93 +355,108 @@ def draw_grasp_candidate(X_G, prefix='gripper', draw_frames=True):
     diagram.Publish(context)
 
 
-def sample_grasps_example():
-    v = meshcat.Visualizer(zmq_url=zmq_url)
-    v.delete()
-    rng = np.random.default_rng(seed=10001)
+class GraspSampler:
+    def __init__(self, environment: Diagram):
+        self.rng = np.random.default_rng(seed=10001)
+        self.env = environment
 
-    environment, environment_context = make_environment_model(
-        draw=True, rng=rng, num_objects=10, bin_name="bin0")
+        # Another diagram for the objects the robot "knows about":
+        # gripper, cameras, bins.
+        # Think of this as the model in the robot's head.
+        builder = DiagramBuilder()
+        plant, scene_graph = AddMultibodyPlantSceneGraph(
+            builder, time_step=0.001)
+        parser = Parser(plant)
+        AddPackagePaths(parser)
+        ProcessModelDirectives(
+            LoadModelDirectives(FindResource("models/clutter_planning.yaml")),
+            plant, parser)
+        plant.Finalize()
+        self.plant = plant
+        self.sg = scene_graph
 
-    render_system_with_graphviz(environment, output_file='environment.gz')
+        viz = ConnectMeshcatVisualizer(builder, scene_graph, zmq_url=zmq_url,
+                                       prefix="planning")
+        viz.load()
+        diagram = builder.Build()
+        context = diagram.CreateDefaultContext()
+        diagram.Publish(context)
+        # Hide this particular gripper
+        viz.vis["planning/plant/gripper"].set_property('visible', False)
 
-    # Another diagram for the objects the robot "knows about":
-    # gripper, cameras, bins.  Think of this as the model in the robot's head.
-    builder = DiagramBuilder()
-    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=0.001)
-    parser = Parser(plant)
-    AddPackagePaths(parser)
-    ProcessModelDirectives(
-        LoadModelDirectives(FindResource("models/clutter_planning.yaml")),
-        plant, parser)
-    plant.Finalize()
+        self.diagram = diagram
+        self.viz = viz
 
-    v = ConnectMeshcatVisualizer(builder, scene_graph, zmq_url=zmq_url,
-                                 prefix="planning.gz")
-    v.load()
-    diagram = builder.Build()
-    render_system_with_graphviz(diagram, output_file='planning.gz')
-    context = diagram.CreateDefaultContext()
-    diagram.Publish(context)
-    # Hide this particular gripper
-    v.vis["planning.gz/plant/gripper"].set_property('visible', False)
+    def sample_grasp_candidates(self, context_env, draw_grasp_candidates=True):
+        cloud = process_point_cloud(self.env, context_env,
+                                    ["camera0", "camera1", "camera2"], "bin0")
 
-    cloud = process_point_cloud(environment, environment_context,
-                                ["camera0", "camera1", "camera2"], "bin0")
-    draw_open3d_point_cloud(v.vis["cloud"], cloud, size=0.003)
+        draw_open3d_point_cloud(self.viz.vis['cloud'], cloud, size=0.003)
 
-    plant_context = plant.GetMyContextFromRoot(context)
-    scene_graph_context = scene_graph.GetMyContextFromRoot(context)
+        context = self.diagram.CreateDefaultContext()
+        plant_context = self.plant.GetMyContextFromRoot(context)
+        scene_graph_context = self.sg.GetMyContextFromRoot(context)
+        costs = []
+        X_Gs = []
 
-    costs = []
-    X_Gs = []
-    for i in tqdm(range(100)):
-        cost, X_G = generate_grasp_candidate_antipodal(
-            plant_context, cloud,
-            plant, scene_graph,
-            scene_graph_context,
-            rng)
-        if np.isfinite(cost):
-            costs.append(cost)
-            X_Gs.append(X_G)
+        for i in tqdm(range(100)):
+            cost, X_G = generate_grasp_candidate_antipodal(
+                plant_context, cloud,
+                self.plant, self.sg,
+                scene_graph_context,
+                self.rng)
+            if np.isfinite(cost):
+                costs.append(cost)
+                X_Gs.append(X_G)
 
-    indices = np.asarray(costs).argsort()[:5]
-    for i in indices:
-        draw_grasp_candidate(X_Gs[i], prefix=f"{i}th best", draw_frames=False)
+        if draw_grasp_candidates:
+            indices = np.asarray(costs).argsort()[:5]
+            for i in indices:
+                draw_grasp_candidate(X_Gs[i], prefix=f"{i}th best",
+                                     draw_frames=False)
 
-    return costs, X_Gs
+        return costs, X_Gs
 
-
-# costs, X_Gs = sample_grasps_example()
 
 #%%
-from pydrake.all import (ExternallyAppliedSpatialForce, SpatialForce,)
-from pydrake.math import RollPitchYaw
-
 directive_file = os.path.join(
     os.getcwd(), 'models', 'two_bins_and_actuated_shcunk.yml')
 
-env, context_env = make_environment_model(
-    directive=directive_file,
-    draw=True, num_objects=0, add_gripper_control=True)
+rng = np.random.default_rng(seed=10001)
 
-# render_system_with_graphviz(env, 'actauted_schunk.gz')
+# clean up visualization.
+v = meshcat.Visualizer(zmq_url=zmq_url)
+v.delete()
+
+# build environment and grasp sampler.
+env, context_env = make_environment_model(
+    directive=directive_file, rng=rng, draw=True, num_objects=5,
+    add_gripper_control=True)
+grasp_sampler = GraspSampler(env)
+
+# sample some grasps.
+costs, X_Gs = grasp_sampler.sample_grasp_candidates(context_env)
+
+
+
+#%%
+assert False
+from pydrake.all import (ExternallyAppliedSpatialForce, SpatialForce,)
+
+env, context_env = make_environment_model(
+    directive=directive_file, rng=rng,
+    draw=True, num_objects=5, add_gripper_control=True)
+
+render_system_with_graphviz(env, 'actauted_schunk.gz')
+
 
 plant_env = env.GetSubsystemByName('plant')
 context_plant = plant_env.GetMyContextFromRoot(context_env)
 
-schunk_model = plant_env.GetModelInstanceByName('gripper')
-# schunk_body = plant_env.GetBodyByName('body')
-# F_Bq_W = SpatialForce(np.array([0, 0, 0]), np.array([0, 0, 11]))
-#
-# eaf = ExternallyAppliedSpatialForce()
-# eaf.F_Bq_W = F_Bq_W
-# eaf.body_index = schunk_body.index()
-# plant_env.get_applied_spatial_force_input_port().FixValue(
-#     context_plant, [eaf])
-plant_env.get_actuation_input_port(schunk_model).FixValue(
-    context_plant, np.zeros(2))
-
+gfc = env.GetSubsystemByName('gripper_finger_controller')
+context_gfc = gfc.GetMyContextFromRoot(context_env)
+gfc.get_input_port_desired_state().FixValue(context_gfc,
+    np.array([-0.02, 0.02, 0, 0]))
 
 gpc = env.GetSubsystemByName('gripper_pose_controller')
 context_gpc = gpc.GetMyContextFromRoot(context_env)
