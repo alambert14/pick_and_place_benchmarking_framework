@@ -10,8 +10,8 @@ from pydrake.all import (LinearSpringDamper, LinearBushingRollPitchYaw,
 lime_sdf = os.path.join(os.getcwd(), 'cad_files', 'Lime_simplified.sdf')
 
 
-def add_bag_of_lime(n_limes: int, l_spring: float, bag_index: int,
-                    plant: MultibodyPlant, parser: Parser):
+def add_bag_of_lime(n_limes: int, bag_index: int, plant: MultibodyPlant,
+                    parser: Parser):
     lime_models = [parser.AddModelFromFile(
         lime_sdf, 'lime_{}_{}'.format(bag_index, i))
                    for i in range(n_limes)]
@@ -19,13 +19,6 @@ def add_bag_of_lime(n_limes: int, l_spring: float, bag_index: int,
                    for i in range(n_limes)]
     for i in range(n_limes):
         for j in range(i + 1, n_limes):
-            # print(i, j)
-            # p_Bq = np.array([0, 0, 0.0])
-            # plant.AddForceElement(
-            #     LinearSpringDamper(
-            #         lime_bodies[i], p_Bq, lime_bodies[j], p_Bq,
-            #         free_length=l_spring, stiffness=100, damping=20))
-
             plant.AddForceElement(
                 LinearBushingRollPitchYaw(
                     frameA=lime_bodies[i].body_frame(),
@@ -72,7 +65,7 @@ if __name__ == '__main__':
 
     n_limes = 5
     l_spring = 0.08
-    lime_bodies = add_bag_of_lime(n_limes, l_spring, 0, plant, parser)
+    lime_bodies = add_bag_of_lime(n_limes, 0, plant, parser)
     plant.Finalize()
 
     viz = ConnectMeshcatVisualizer(builder, scene_graph)

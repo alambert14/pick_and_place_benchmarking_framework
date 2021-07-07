@@ -167,13 +167,11 @@ def make_environment_model(
 
     object_bodies = []
     n_bags_of_lime = 0
-    l_spring = 0.08  # for lime bags.
     for i in range(num_objects):
         i_obj = rng.integers(len(object_sdfs))
         if object_names[i_obj] == 'Lime':
-            lime_bodies = add_bag_of_lime(
-                n_limes=5, l_spring=l_spring, bag_index=n_bags_of_lime,
-                plant=plant, parser=parser)
+            lime_bodies = add_bag_of_lime(n_limes=5, bag_index=n_bags_of_lime,
+                                          plant=plant, parser=parser)
             object_bodies.append(lime_bodies)
             n_bags_of_lime += 1
         else:
@@ -261,6 +259,7 @@ def make_environment_model(
         bin_body = plant.GetBodyByName("bin_base", bin_instance)
         X_B = plant.EvalBodyPoseInWorld(plant_context, bin_body)
         z = 0.3
+        l_spring = 0.08  # for lime bags.
         for object_body in object_bodies:
             tf = RigidTransform(
                 RotationMatrix(),
