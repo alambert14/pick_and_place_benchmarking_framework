@@ -13,7 +13,7 @@ from pydrake.all import (
     AddMultibodyPlantSceneGraph, ConnectMeshcatVisualizer,
     DiagramBuilder, RigidTransform, RotationMatrix,
     CoulombFriction, FindResourceOrThrow, Diagram,
-    GeometryInstance, MeshcatContactVisualizer, Parser, PidController,
+    PiecewisePolynomial, PiecewiseQuaternionSlerp, Parser, PidController,
     RandomGenerator, Simulator, ProcessModelDirectives, LoadModelDirectives,
     MatrixGain,
 )
@@ -25,7 +25,8 @@ from manipulation.meshcat_utils import draw_open3d_point_cloud, draw_points
 from manipulation.open3d_utils import create_open3d_point_cloud
 
 from utils import render_system_with_graphviz
-from gripper_pose_controller import GripperPoseController
+from gripper_pose_controller import (GripperPoseController,
+                                     CustomTrajectorySource)
 
 #%%
 zmq_url = "tcp://127.0.0.1:6000"
@@ -210,6 +211,29 @@ def make_environment_model(
             finger_state_selector.get_output_port(),
             gfc.get_input_port_estimated_state())
 
+        # trajectory source for gripper.
+        finger_setpoints = PiecewisePolynomial.ZeroOrderHold(
+            [0, 1], np.array([[0.1], [0.1]]).T)
+
+        p_WB_traj = PiecewisePolynomial.ZeroOrderHold(
+            [0, 1], np.array([[0, 0, 0], [0, 0, 0.]]).T)
+
+        Q_WB = RollPitchYaw(np.pi / 2, 0, 0).ToQuaternion()
+        Q_WB_traj = PiecewiseQuaternionSlerp([0, 1], [Q_WB, Q_WB])
+
+        traj_source = CustomTrajectorySource(
+            p_WB_traj=p_WB_traj, Q_WB_traj=Q_WB_traj,
+            finger_setpoint_traj=finger_setpoints)
+
+        builder.AddSystem(traj_source)
+        builder.Connect(
+            traj_source.body_pose_output_port,
+            gpc.pose_ref_input_port)
+
+        builder.Connect(
+            traj_source.finger_setpoint_output_port,
+            gfc.get_input_port_desired_state())
+
     if draw:
         viz = ConnectMeshcatVisualizer(
             builder, scene_graph, zmq_url=zmq_url, prefix="environment")
@@ -225,6 +249,8 @@ def make_environment_model(
         X_B = plant.EvalBodyPoseInWorld(plant_context, bin_body)
         z = 0.3
         for body_index in plant.GetFloatingBaseBodies():
+            if add_gripper_control and body_index == schunk_body.index():
+                continue
             tf = RigidTransform(
                 RotationMatrix(),
                 [rng.uniform(-.15, .15), rng.uniform(-.2, .2), z])
@@ -237,19 +263,11 @@ def make_environment_model(
         if draw:
             viz.start_recording()
 
-        if add_gripper_control:
-            # set initial gripper finger positions.
-            context_gfc = gfc.GetMyContextFromRoot(context)
-            gfc.get_input_port_desired_state().FixValue(
-                context_gfc, np.array([-0.05, 0.05, 0, 0]))
-
-            # set initial gripper pose.
-            context_gpc = gpc.GetMyContextFromRoot(context)
-            rpy = RollPitchYaw(np.pi / 2, 0, 0)
-            q_and_p = np.hstack(
-                [rpy.ToQuaternion().wxyz(), np.array([0, 0, 0.])])
-            gpc.pose_ref_input_port.FixValue(context_gpc, q_and_p)
-        simulator.AdvanceTo(1.0)
+        # viz.start_recording()
+        simulator.AdvanceTo(5.0)
+        simulator.set_target_realtime_rate(0.)
+        # viz.stop_recording()
+        # viz.publish_recording()
 
         if draw:
             viz.stop_recording()
@@ -409,13 +427,14 @@ class GraspSampler:
                 costs.append(cost)
                 X_Gs.append(X_G)
 
+        indices = np.asarray(costs).argsort()[:5]
+
         if draw_grasp_candidates:
-            indices = np.asarray(costs).argsort()[:5]
             for i in indices:
                 draw_grasp_candidate(X_Gs[i], prefix=f"{i}th best",
                                      draw_frames=False)
 
-        return costs, X_Gs
+        return X_Gs[indices[0]]
 
 
 #%%
@@ -435,8 +454,59 @@ env, context_env = make_environment_model(
 grasp_sampler = GraspSampler(env)
 
 # sample some grasps.
-costs, X_Gs = grasp_sampler.sample_grasp_candidates(context_env)
+X_WB = grasp_sampler.sample_grasp_candidates(
+    context_env, draw_grasp_candidates=False)
 
+#%%
+# start gripper from 0.3m above the grasp, move in, grasp and pick up.
+n_knots = 4
+t_knots = [0, 5, 6, 11]
+finger_setpoint_knots = np.array([[0.1, 0.01, 0.01, 0.01]])
+p_WB_knots = np.zeros((4, 3))
+p_WB_knots[0] = X_WB.translation() + np.array([0, 0, 0.3])
+p_WB_knots[1] = X_WB.translation()
+p_WB_knots[2] = X_WB.translation()
+p_WB_knots[3] = p_WB_knots[0]
+
+Q_WB = X_WB.rotation().ToQuaternion()
+finger_setpoint_traj = PiecewisePolynomial.ZeroOrderHold(
+    t_knots, finger_setpoint_knots)
+p_WB_traj = PiecewisePolynomial.FirstOrderHold(t_knots, p_WB_knots.T)
+Q_WB_traj = PiecewiseQuaternionSlerp(t_knots, [Q_WB] * n_knots)
+
+traj_source = env.GetSubsystemByName('custom_trajectory_source')
+traj_source.Q_WB_traj = Q_WB_traj
+traj_source.finger_setpoint_traj = finger_setpoint_traj
+traj_source.p_WB_traj = p_WB_traj
+
+context_new = env.CreateDefaultContext()
+plant_env = env.GetSubsystemByName('plant')
+context_plant_old = plant_env.GetMyContextFromRoot(context_env)
+context_plant_new = plant_env.GetMyContextFromRoot(context_new)
+plant_env.SetPositionsAndVelocities(
+    context_plant_new,
+    plant_env.GetPositionsAndVelocities(context_plant_old))
+
+# gripper
+schunk_model = plant_env.GetModelInstanceByName('gripper')
+schunk_body = plant_env.GetBodyByName('body')
+schunk_position = np.zeros(9)
+schunk_position[:4] = Q_WB.wxyz()
+schunk_position[4:7] = p_WB_knots[0]
+schunk_position[7:9] = [-finger_setpoint_knots[0, 0] / 2,
+                        finger_setpoint_knots[0, 0] / 2]
+plant_env.SetPositions(context_plant_new, schunk_model, schunk_position)
+
+env.Publish(context_new)
+
+#%% sim
+sim = Simulator(env, context_new)
+viz = env.GetSubsystemByName('meshcat_visualizer')
+viz.reset_recording()
+viz.start_recording()
+sim.AdvanceTo(t_knots[-1])
+viz.stop_recording()
+viz.publish_recording()
 
 
 #%%
@@ -472,3 +542,6 @@ viz.start_recording()
 sim.AdvanceTo(2.0)
 viz.stop_recording()
 viz.publish_recording()
+
+
+
