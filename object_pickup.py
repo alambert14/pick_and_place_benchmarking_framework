@@ -27,13 +27,14 @@ from manipulation.open3d_utils import create_open3d_point_cloud
 from utils import render_system_with_graphviz
 from gripper_pose_controller import (GripperPoseController,
                                      CustomTrajectorySource)
+from lime_bag import add_bag_of_lime, initialize_bag_of_lime
 
 #%%
 zmq_url = "tcp://127.0.0.1:6000"
 
 # object SDFs.
-# object_names = ['Lime', 'Cucumber', 'Mango']
-object_names = ['Lime']
+object_names = ['Lime', 'Cucumber', 'Mango']
+# object_names = ['Lime']
 object_sdfs = [os.path.join(os.getcwd(), 'cad_files', name + '_simplified.sdf')
                for name in object_names]
 
@@ -164,9 +165,20 @@ def make_environment_model(
     AddPackagePaths(parser)
     ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
 
+    object_bodies = []
+    n_bags_of_lime = 0
+    l_spring = 0.08  # for lime bags.
     for i in range(num_objects):
-        object_num = rng.integers(len(object_sdfs))
-        parser.AddModelFromFile(object_sdfs[object_num], f"object{i}")
+        i_obj = rng.integers(len(object_sdfs))
+        if object_names[i_obj] == 'Lime':
+            lime_bodies = add_bag_of_lime(
+                n_limes=5, l_spring=l_spring, bag_index=n_bags_of_lime,
+                plant=plant, parser=parser)
+            object_bodies.append(lime_bodies)
+            n_bags_of_lime += 1
+        else:
+            model = parser.AddModelFromFile(object_sdfs[i_obj], f"object{i}")
+            object_bodies.append(plant.GetBodyByName('base_link', model))
 
     plant.Finalize()
     AddRgbdSensors(builder, plant, scene_graph)
@@ -249,15 +261,22 @@ def make_environment_model(
         bin_body = plant.GetBodyByName("bin_base", bin_instance)
         X_B = plant.EvalBodyPoseInWorld(plant_context, bin_body)
         z = 0.3
-        for body_index in plant.GetFloatingBaseBodies():
-            if add_gripper_control and body_index == schunk_body.index():
-                continue
+        for object_body in object_bodies:
             tf = RigidTransform(
                 RotationMatrix(),
                 [rng.uniform(-.15, .15), rng.uniform(-.2, .2), z])
-            plant.SetFreeBodyPose(plant_context,
-                                  plant.get_body(body_index),
-                                  X_B.multiply(tf))
+
+            if isinstance(object_body, list):
+                # bag of lime
+                initialize_bag_of_lime(l_spring=l_spring,
+                                       X_WL0=X_B.multiply(tf), plant=plant,
+                                       context_plant=plant_context,
+                                       lime_bodies=object_body)
+            else:
+                # mango, cucumber.
+                plant.SetFreeBodyPose(plant_context,
+                                      object_body,
+                                      X_B.multiply(tf))
             z += 0.05
 
         simulator = Simulator(diagram, context)
