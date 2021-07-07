@@ -20,20 +20,20 @@ def add_bag_of_lime(n_limes: int, l_spring: float, bag_index: int,
     for i in range(n_limes):
         for j in range(i + 1, n_limes):
             # print(i, j)
-            p_Bq = np.array([0, 0, 0.0])
-            plant.AddForceElement(
-                LinearSpringDamper(
-                    lime_bodies[i], p_Bq, lime_bodies[j], p_Bq,
-                    free_length=l_spring, stiffness=100, damping=20))
-
+            # p_Bq = np.array([0, 0, 0.0])
             # plant.AddForceElement(
-            #     LinearBushingRollPitchYaw(
-            #         frameA=lime_bodies[i].body_frame(),
-            #         frameC=lime_bodies[j].body_frame(),
-            #         torque_stiffness_constants=np.array([5, 5, 5.]),
-            #         torque_damping_constants=np.array([0.1, 0.1, 0.1]),
-            #         force_stiffness_constants=np.ones(3) * 10,
-            #         force_damping_constants=np.ones(3) * 1))
+            #     LinearSpringDamper(
+            #         lime_bodies[i], p_Bq, lime_bodies[j], p_Bq,
+            #         free_length=l_spring, stiffness=100, damping=20))
+
+            plant.AddForceElement(
+                LinearBushingRollPitchYaw(
+                    frameA=lime_bodies[i].body_frame(),
+                    frameC=lime_bodies[j].body_frame(),
+                    torque_stiffness_constants=np.ones(3) * 1e-3,
+                    torque_damping_constants=np.ones(3) * 2e-4,
+                    force_stiffness_constants=np.ones(3) * 5,
+                    force_damping_constants=np.ones(3) * 1))
 
     return lime_bodies
 
@@ -67,7 +67,7 @@ def initialize_bag_of_lime(
 if __name__ == '__main__':
     #%%
     builder = DiagramBuilder()
-    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=0.0005)
+    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=5e-4)
     parser = Parser(plant)
 
     n_limes = 5

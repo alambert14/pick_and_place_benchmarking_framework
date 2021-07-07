@@ -160,7 +160,7 @@ def make_environment_model(
         directive = FindResource("models/two_bins_w_cameras.yaml")
 
     builder = DiagramBuilder()
-    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=5e-4)
+    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=1e-3)
     parser = Parser(plant)
     AddPackagePaths(parser)
     ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
@@ -484,7 +484,7 @@ n_knots = 4
 t_knots = [0, 2.5, 3.5, 7]
 finger_setpoint_knots = np.array([[0.1, 0.01, 0.01, 0.01]])
 p_WB_knots = np.zeros((4, 3))
-X_WB = X_Gs_best[1]
+X_WB = X_Gs_best[0]
 p_WB_knots[0] = X_WB.translation() + np.array([0, 0, 0.3])
 p_WB_knots[1] = X_WB.translation()
 p_WB_knots[2] = X_WB.translation()
