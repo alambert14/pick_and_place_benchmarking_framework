@@ -64,6 +64,12 @@ class CustomTrajectorySource(LeafSystem):
     def __init__(self, Q_WB_traj: PiecewiseQuaternionSlerp,
                  p_WB_traj: PiecewisePolynomial,
                  finger_setpoint_traj: PiecewisePolynomial):
+        """
+        For gripper pose and finger position trajectory references.
+        :param Q_WB_traj:
+        :param p_WB_traj:
+        :param finger_setpoint_traj:
+        """
         super().__init__()
         self.set_name('custom_trajectory_source')
 
@@ -95,6 +101,4 @@ class CustomTrajectorySource(LeafSystem):
         v_open = self.finger_setpoint_traj.derivative(1).value(t).ravel()[0]
         setpoints = np.array([-d_open, d_open, -v_open, v_open])
         output.SetFromVector(setpoints)
-
-
 

@@ -1,33 +1,55 @@
-import os
+from typing import List
 
-
+import numpy as np
+import pydrake
 from pydrake.all import (
     PiecewisePolynomial, PiecewiseQuaternionSlerp, Parser, PidController,
     RandomGenerator, Simulator, ProcessModelDirectives, LoadModelDirectives,
-    MatrixGain,
+    MatrixGain, MultibodyPlant, InverseDynamicsController
 )
 from pydrake.math import RollPitchYaw
 
 from manipulation.scenarios import AddRgbdSensors
 
-from utils import render_system_with_graphviz
+from iiwa_controller.iiwa_controller.utils import (
+    create_iiwa_controller_plant)
+
+from utils import (render_system_with_graphviz, add_package_paths,
+                   SimpleTrajectorySource)
 from grasp_sampler import *
-from gripper_pose_controller import (GripperPoseController,
-                                     CustomTrajectorySource)
 from lime_bag import add_bag_of_lime, initialize_bag_of_lime
+from inverse_kinematics import calc_joint_trajectory
 
 #%%
 # object SDFs.
 object_names = ['Lime', 'Cucumber', 'Mango']
 # object_names = ['Lime']
-object_sdfs = [os.path.join(os.getcwd(), 'cad_files', name + '_simplified.sdf')
+sdf_dir = os.path.join(os.path.dirname(__file__), 'cad_files')
+object_sdfs = [os.path.join(sdf_dir, name + '_simplified.sdf')
                for name in object_names]
 
+q_iiwa_bin0 = np.array([-np.pi / 2, 0.1, 0, -1.2, 0, 1.6, 0])
+q_iiwa_bin1 = np.array([0, 0.1, 0, -1.2, 0, 1.6, 0])
 
-#%%
+
+def concatenate_traj_list(traj_list: List[PiecewisePolynomial]):
+    """
+    Concatenates a list of PiecewisePolynomials into a single
+        PiecewisePolynomial.
+    """
+    traj = traj_list[0]
+    for a in traj_list[1:]:
+        dt = traj.end_time()
+        a.shiftRight(dt)
+        traj.ConcatenateInTime(a)
+        a.shiftRight(-dt)
+
+    return traj
+
+
 def make_environment_model(
         directive=None, draw=False, rng=None, num_objects=0, bin_name="bin0",
-        add_gripper_control=False):
+        add_robot=False):
     """
     Make one model of the environment, but the robot only gets to see the sensor
      outputs.
@@ -38,7 +60,8 @@ def make_environment_model(
     builder = DiagramBuilder()
     plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=1e-3)
     parser = Parser(plant)
-    AddPackagePaths(parser)
+    AddPackagePaths(parser)  # Russ's manipulation repo.
+    add_package_paths(parser)  # local.
     ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
 
     object_bodies = []
@@ -56,69 +79,60 @@ def make_environment_model(
 
     plant.Finalize()
     AddRgbdSensors(builder, plant, scene_graph)
+    plant_iiwa_contoller = None
 
-    if add_gripper_control:
-        # Gripper Pose Control
-        schunk_body = plant.GetBodyByName('body')
-        gpc = GripperPoseController(gripper_body_idx=schunk_body.index())
-        builder.AddSystem(gpc)
-        builder.Connect(
-            plant.get_body_spatial_velocities_output_port(),
-            gpc.body_spatial_velocity_input_port)
-        builder.Connect(
-            plant.get_body_poses_output_port(),
-            gpc.body_pose_input_port)
-        builder.Connect(
-            gpc.spatial_force_output_port,
-            plant.get_applied_spatial_force_input_port())
+    if add_robot:
+        # robot control.
+        plant_iiwa_controller, _ = create_iiwa_controller_plant(
+            gravity=plant.gravity_field().gravity_vector(),
+            add_schunk_inertia=True)
+
+        Kp_iiwa = np.ones(7) * 100
+        Kd_iiwa = 2 * np.sqrt(Kp_iiwa)
+        Ki_iiwa = np.ones(7)
+        idc = InverseDynamicsController(plant_iiwa_controller, Kp_iiwa,
+                                        Ki_iiwa, Kd_iiwa, False)
+        builder.AddSystem(idc)
+        model_iiwa = plant.GetModelInstanceByName('iiwa')
+        builder.Connect(plant.get_state_output_port(model_iiwa),
+                        idc.get_input_port_estimated_state())
+        builder.Connect(idc.get_output_port_control(),
+                        plant.get_actuation_input_port(model_iiwa))
+
+        # robot trajectory source
+        q_knots = np.zeros((2, 7))
+        q_knots[0] = q_iiwa_bin1
+        robot_traj_source = SimpleTrajectorySource(
+            PiecewisePolynomial.ZeroOrderHold(
+            [0, 1], q_knots.T))
+        builder.AddSystem(robot_traj_source)
+        builder.Connect(robot_traj_source.x_output_port,
+                        idc.get_input_port_desired_state())
+        robot_traj_source.set_name('robot_traj_source')
 
         # Gripper Finger Control
-        schunk_model = plant.GetModelInstanceByName('gripper')
-        K_schunk = np.array([500, 500.])
-        D_schunk = np.array([10, 10.])
-        gfc = PidController(K_schunk, np.zeros(2), D_schunk)
+        model_schunk = plant.GetModelInstanceByName('gripper')
+        Kp_schunk = np.array([500, 500.])
+        Kd_schunk = np.array([10, 10.])
+        gfc = PidController(Kp_schunk, np.zeros(2), Kd_schunk)
         gfc.set_name('gripper_finger_controller')
-
-        S = np.zeros((4, 17))
-        S[0, 7] = 1
-        S[1, 8] = 1
-        S[2, -2] = 1
-        S[3, -1] = 1
-        finger_state_selector = MatrixGain(S)
-        finger_state_selector.set_name('finger_state_selector')
         builder.AddSystem(gfc)
-        builder.AddSystem(finger_state_selector)
         builder.Connect(
             gfc.get_output_port_control(),
-            plant.get_actuation_input_port(schunk_model))
+            plant.get_actuation_input_port(model_schunk))
         builder.Connect(
-            plant.get_state_output_port(schunk_model),
-            finger_state_selector.get_input_port())
-        builder.Connect(
-            finger_state_selector.get_output_port(),
+            plant.get_state_output_port(model_schunk),
             gfc.get_input_port_estimated_state())
 
         # trajectory source for gripper.
         finger_setpoints = PiecewisePolynomial.ZeroOrderHold(
-            [0, 1], np.array([[0.1], [0.1]]).T)
+            [0, 1], np.array([[-0.05, 0.05], [-0.05, 0.05]]).T)
+        schunk_traj_source = SimpleTrajectorySource(finger_setpoints)
+        schunk_traj_source.set_name("schunk_traj_source")
 
-        p_WB_traj = PiecewisePolynomial.ZeroOrderHold(
-            [0, 1], np.array([[0, 0, 0], [0, 0, 0.]]).T)
-
-        Q_WB = RollPitchYaw(np.pi / 2, 0, 0).ToQuaternion()
-        Q_WB_traj = PiecewiseQuaternionSlerp([0, 1], [Q_WB, Q_WB])
-
-        traj_source = CustomTrajectorySource(
-            p_WB_traj=p_WB_traj, Q_WB_traj=Q_WB_traj,
-            finger_setpoint_traj=finger_setpoints)
-
-        builder.AddSystem(traj_source)
+        builder.AddSystem(schunk_traj_source)
         builder.Connect(
-            traj_source.body_pose_output_port,
-            gpc.pose_ref_input_port)
-
-        builder.Connect(
-            traj_source.finger_setpoint_output_port,
+            schunk_traj_source.x_output_port,
             gfc.get_input_port_desired_state())
 
     if draw:
@@ -127,6 +141,13 @@ def make_environment_model(
 
     diagram = builder.Build()
     context = diagram.CreateDefaultContext()
+
+    if add_robot:
+        # robot and gripper initial conditions.
+        context_plant = plant.GetMyContextFromRoot(context)
+        plant.SetPositions(context_plant, model_iiwa, q_iiwa_bin1)
+        plant.SetPositions(context_plant, model_schunk,
+                           finger_setpoints.value(0).ravel())
 
     if num_objects > 0:
         generator = RandomGenerator(rng.integers(1000))  # this is for c++
@@ -159,7 +180,7 @@ def make_environment_model(
             viz.start_recording()
 
         # viz.start_recording()
-        simulator.AdvanceTo(5.0)
+        simulator.AdvanceTo(3.0)
         simulator.set_target_realtime_rate(0.)
         # viz.stop_recording()
         # viz.publish_recording()
@@ -171,13 +192,12 @@ def make_environment_model(
         viz.load()
         diagram.Publish(context)
 
-    return diagram, context
-
+    return diagram, context, plant_iiwa_controller, simulator
 
 
 #%%
 directive_file = os.path.join(
-    os.getcwd(), 'models', 'two_bins_and_actuated_shcunk.yml')
+    os.getcwd(), 'models', 'iiwa_schunk_and_two_bins.yml')
 
 rng = np.random.default_rng(seed=10001)
 
@@ -186,15 +206,118 @@ v = meshcat.Visualizer(zmq_url=zmq_url)
 v.delete()
 
 # build environment and grasp sampler.
-env, context_env = make_environment_model(
+env, context_env, plant_iiwa_controller, sim = make_environment_model(
     directive=directive_file, rng=rng, draw=True, num_objects=7,
-    add_gripper_control=True)
+    add_robot=True)
 grasp_sampler = GraspSampler(env)
 
-# sample some grasps.
-X_Gs_best = grasp_sampler.sample_grasp_candidates(
-    context_env, draw_grasp_candidates=True)
+#%% home EE poses for bin1 and bin2.
+context_iiwa_plant = plant_iiwa_controller.CreateDefaultContext()
+iiwa_model = plant_iiwa_controller.GetModelInstanceByName('iiwa')
+frame_E = plant_iiwa_controller.GetBodyByName('wsg_equivalent').body_frame()
 
+plant_iiwa_controller.SetPositions(context_iiwa_plant, q_iiwa_bin0)
+X_WE_bin0 = plant_iiwa_controller.CalcRelativeTransform(
+    context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
+
+plant_iiwa_controller.SetPositions(context_iiwa_plant, q_iiwa_bin1)
+X_WE_bin1 = plant_iiwa_controller.CalcRelativeTransform(
+    context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
+
+# commonly used trajectories
+nq = 7
+q_traj_01 = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
+    [0, 3], np.vstack([q_iiwa_bin0, q_iiwa_bin1]).T,
+    np.zeros(nq), np.zeros((nq)))
+
+
+def get_q_traj_10():
+    q_traj_10 = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
+        [0, 3], np.vstack([q_iiwa_bin1, q_iiwa_bin0]).T,
+        np.zeros(nq), np.zeros((nq)))
+
+    return q_traj_10
+
+
+q_traj_1_hold = PiecewisePolynomial.ZeroOrderHold(
+    [0, 1], np.vstack([q_iiwa_bin1, q_iiwa_bin1]).T)
+
+
+#%%
+robot_traj_source = env.GetSubsystemByName('robot_traj_source')
+schunk_traj_source = env.GetSubsystemByName('schunk_traj_source')
+plant_env = env.GetSubsystemByName('plant')
+context_plant = plant_env.GetMyContextFromRoot(context_env)
+model_iiwa = plant_env.GetModelInstanceByName('iiwa')
+
+
+durations = np.array([3, 2, 3, 1, 3, 2, 3, 1])
+# t_knots:
+# 0: 1
+# 1: 0
+# 2: above
+# 3: grasp
+# 4: grasp hold
+# 5: above
+# 6: 0
+# 7: 1
+# 8: 1 hold
+t_knots = np.cumsum(np.hstack([[0], durations]))
+schunk_setpoints = np.array([[-0.05, 0.05],
+                             [-0.05, 0.05],
+                             [-0.05, 0.05],
+                             [-0.05, 0.05],
+                             [0, 0],
+                             [0, 0],
+                             [0, 0],
+                             [0, 0],
+                             [-0.05, 0.05]])
+schunk_traj = PiecewisePolynomial.ZeroOrderHold(t_knots, schunk_setpoints.T)
+schunk_traj_source.q_traj = schunk_traj
+
+while True:
+    # Sample some grasps.
+    print('Sampling new grasps...')
+    X_Gs_best = grasp_sampler.sample_grasp_candidates(
+        context_env, draw_grasp_candidates=False)
+    if len(X_Gs_best) == 0:
+        break
+
+    # bin0 home to "above" pose
+    X_WE_grasp = X_Gs_best[0]
+    X_WE_above = RigidTransform(X_WE_grasp)
+    X_WE_above.set_translation(X_WE_grasp.translation() + np.array([0, 0, 0.3]))
+    q_traj_0_to_above, q_traj_above_to_0 = calc_joint_trajectory(
+        X_WE_start=X_WE_bin0, X_WE_final=X_WE_above, duration=durations[1],
+        frame_E=frame_E, plant=plant_iiwa_controller,
+        q_initial_guess=q_iiwa_bin0)
+
+    # above to grasp
+    q_traj_above_to_grasp, q_traj_grasp_to_above = calc_joint_trajectory(
+        X_WE_start=X_WE_above, X_WE_final=X_WE_grasp, duration=durations[2],
+        frame_E=frame_E, plant=plant_iiwa_controller,
+        q_initial_guess=q_traj_0_to_above.value(durations[2]).ravel())
+
+    # hold
+    q_grasping = q_traj_above_to_grasp.value(durations[3]).ravel()
+    q_traj_grasp_hold = PiecewisePolynomial.ZeroOrderHold(
+        [0, durations[3]], np.vstack([q_grasping, q_grasping]).T)
+
+    q_traj_10 = get_q_traj_10()
+    q_traj = concatenate_traj_list(
+        [q_traj_10, q_traj_0_to_above, q_traj_above_to_grasp, q_traj_grasp_hold,
+         q_traj_grasp_to_above, q_traj_above_to_0, q_traj_01, q_traj_1_hold])
+
+    # update time in trajectory sources.
+    t_current = context_env.get_time()
+    schunk_traj_source.set_t_start(t_current)
+    robot_traj_source.set_t_start(t_current)
+    robot_traj_source.q_traj = q_traj
+
+    sim.AdvanceTo(t_current + q_traj.end_time())
+
+
+assert False
 #%%
 # start gripper from 0.3m above the grasp, move in, grasp and pick up.
 n_knots = 4
@@ -219,8 +342,8 @@ traj_source.finger_setpoint_traj = finger_setpoint_traj
 traj_source.p_WB_traj = p_WB_traj
 
 context_new = env.CreateDefaultContext()
-plant_env = env.GetSubsystemByName('plant')
-context_plant_old = plant_env.GetMyContextFromRoot(context_env)
+
+
 context_plant_new = plant_env.GetMyContextFromRoot(context_new)
 plant_env.SetPositionsAndVelocities(
     context_plant_new,
