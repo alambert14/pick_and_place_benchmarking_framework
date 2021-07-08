@@ -1,6 +1,6 @@
 directives:
     - add_directives:
-        file: package://manipulation/two_bins_w_cameras.yaml
+        file: package://local/two_bins_w_cameras.yaml
 
     - add_model:
         name: gripper

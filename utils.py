@@ -21,7 +21,7 @@ def render_system_with_graphviz(system, output_file="system_view.gz"):
     src.render(output_file, view=False)
 
 
-def add_package_paths(parser: Parser):
+def add_package_paths_local(parser: Parser):
     parser.package_map().Add(
         "drake_manipulation_models",
         os.path.join(pydrake.common.GetDrakePath(),

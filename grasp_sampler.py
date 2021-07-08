@@ -14,6 +14,8 @@ from pydrake.all import (
 )
 from tqdm import tqdm
 
+from utils import add_package_paths_local
+
 zmq_url = "tcp://127.0.0.1:6000"
 
 
@@ -231,8 +233,11 @@ class GraspSampler:
             builder, time_step=0.001)
         parser = Parser(plant)
         AddPackagePaths(parser)
+        add_package_paths_local(parser)
         ProcessModelDirectives(
-            LoadModelDirectives(FindResource("models/clutter_planning.yaml")),
+            LoadModelDirectives(
+                os.path.join(os.path.dirname(__file__),
+                             "models/clutter_planning.yaml")),
             plant, parser)
         plant.Finalize()
         self.plant = plant

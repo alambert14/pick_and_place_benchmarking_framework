@@ -1,3 +1,4 @@
+import os.path
 from typing import List
 
 import numpy as np
@@ -14,7 +15,7 @@ from manipulation.scenarios import AddRgbdSensors
 from iiwa_controller.iiwa_controller.utils import (
     create_iiwa_controller_plant)
 
-from utils import (render_system_with_graphviz, add_package_paths,
+from utils import (render_system_with_graphviz, add_package_paths_local,
                    SimpleTrajectorySource)
 from grasp_sampler import *
 from lime_bag import add_bag_of_lime, initialize_bag_of_lime
@@ -55,13 +56,14 @@ def make_environment_model(
      outputs.
     """
     if not directive:
-        directive = FindResource("models/two_bins_w_cameras.yaml")
+        directive = os.path.join(
+            os.path.dirname(__file__), "models/two_bins_w_cameras.yaml")
 
     builder = DiagramBuilder()
     plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=1e-3)
     parser = Parser(plant)
     AddPackagePaths(parser)  # Russ's manipulation repo.
-    add_package_paths(parser)  # local.
+    add_package_paths_local(parser)  # local.
     ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
 
     object_bodies = []
@@ -173,14 +175,14 @@ def make_environment_model(
                 plant.SetFreeBodyPose(plant_context,
                                       object_body,
                                       X_B.multiply(tf))
-            z += 0.05
+            z += 0.08
 
         simulator = Simulator(diagram, context)
         if draw:
             viz.start_recording()
 
         # viz.start_recording()
-        simulator.AdvanceTo(3.0)
+        simulator.AdvanceTo(5.0)
         simulator.set_target_realtime_rate(0.)
         # viz.stop_recording()
         # viz.publish_recording()
