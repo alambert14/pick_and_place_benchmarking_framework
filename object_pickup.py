@@ -246,10 +246,11 @@ q_traj_1_hold = PiecewisePolynomial.ZeroOrderHold(
 #%%
 robot_traj_source = env.GetSubsystemByName('robot_traj_source')
 schunk_traj_source = env.GetSubsystemByName('schunk_traj_source')
-plant_env = env.GetSubsystemByName('plant')
-context_plant = plant_env.GetMyContextFromRoot(context_env)
-model_iiwa = plant_env.GetModelInstanceByName('iiwa')
+viz = env.GetSubsystemByName('meshcat_visualizer')
 
+plant_env = env.GetSubsystemByName('plant')
+# context_plant = plant_env.GetMyContextFromRoot(context_env)
+# model_iiwa = plant_env.GetModelInstanceByName('iiwa')
 
 durations = np.array([3, 2, 3, 1, 3, 2, 3, 1])
 # t_knots:
@@ -266,15 +267,17 @@ t_knots = np.cumsum(np.hstack([[0], durations]))
 schunk_setpoints = np.array([[-0.05, 0.05],
                              [-0.05, 0.05],
                              [-0.05, 0.05],
+                             [0, 0],
+                             [0, 0],
+                             [0, 0],
+                             [0, 0],
                              [-0.05, 0.05],
-                             [0, 0],
-                             [0, 0],
-                             [0, 0],
-                             [0, 0],
                              [-0.05, 0.05]])
 schunk_traj = PiecewisePolynomial.ZeroOrderHold(t_knots, schunk_setpoints.T)
 schunk_traj_source.q_traj = schunk_traj
 
+viz.reset_recording()
+viz.start_recording()
 while True:
     # Sample some grasps.
     print('Sampling new grasps...')
@@ -299,13 +302,14 @@ while True:
         q_initial_guess=q_traj_0_to_above.value(durations[2]).ravel())
 
     # hold
-    q_grasping = q_traj_above_to_grasp.value(durations[3]).ravel()
+    q_grasping = q_traj_above_to_grasp.value(durations[2]).ravel()
     q_traj_grasp_hold = PiecewisePolynomial.ZeroOrderHold(
         [0, durations[3]], np.vstack([q_grasping, q_grasping]).T)
 
     q_traj_10 = get_q_traj_10()
     q_traj = concatenate_traj_list(
-        [q_traj_10, q_traj_0_to_above, q_traj_above_to_grasp, q_traj_grasp_hold,
+        [q_traj_10, q_traj_0_to_above, q_traj_above_to_grasp,
+         q_traj_grasp_hold,
          q_traj_grasp_to_above, q_traj_above_to_0, q_traj_01, q_traj_1_hold])
 
     # update time in trajectory sources.
@@ -316,58 +320,6 @@ while True:
 
     sim.AdvanceTo(t_current + q_traj.end_time())
 
-
-assert False
-#%%
-# start gripper from 0.3m above the grasp, move in, grasp and pick up.
-n_knots = 4
-t_knots = [0, 2.5, 3.5, 7]
-finger_setpoint_knots = np.array([[0.1, 0.01, 0.01, 0.01]])
-p_WB_knots = np.zeros((4, 3))
-X_WB = X_Gs_best[0]
-p_WB_knots[0] = X_WB.translation() + np.array([0, 0, 0.3])
-p_WB_knots[1] = X_WB.translation()
-p_WB_knots[2] = X_WB.translation()
-p_WB_knots[3] = p_WB_knots[0]
-
-Q_WB = X_WB.rotation().ToQuaternion()
-finger_setpoint_traj = PiecewisePolynomial.ZeroOrderHold(
-    t_knots, finger_setpoint_knots)
-p_WB_traj = PiecewisePolynomial.FirstOrderHold(t_knots, p_WB_knots.T)
-Q_WB_traj = PiecewiseQuaternionSlerp(t_knots, [Q_WB] * n_knots)
-
-traj_source = env.GetSubsystemByName('custom_trajectory_source')
-traj_source.Q_WB_traj = Q_WB_traj
-traj_source.finger_setpoint_traj = finger_setpoint_traj
-traj_source.p_WB_traj = p_WB_traj
-
-context_new = env.CreateDefaultContext()
-
-
-context_plant_new = plant_env.GetMyContextFromRoot(context_new)
-plant_env.SetPositionsAndVelocities(
-    context_plant_new,
-    plant_env.GetPositionsAndVelocities(context_plant_old))
-
-# gripper
-schunk_model = plant_env.GetModelInstanceByName('gripper')
-schunk_body = plant_env.GetBodyByName('body')
-schunk_position = np.zeros(9)
-schunk_position[:4] = Q_WB.wxyz()
-schunk_position[4:7] = p_WB_knots[0]
-schunk_position[7:9] = [-finger_setpoint_knots[0, 0] / 2,
-                        finger_setpoint_knots[0, 0] / 2]
-plant_env.SetPositions(context_plant_new, schunk_model, schunk_position)
-
-env.Publish(context_new)
-
-# sim
-sim = Simulator(env, context_new)
-viz = env.GetSubsystemByName('meshcat_visualizer')
-viz.reset_recording()
-viz.start_recording()
-sim.AdvanceTo(t_knots[-1])
 viz.stop_recording()
 viz.publish_recording()
-
 
