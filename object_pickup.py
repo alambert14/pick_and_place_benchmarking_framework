@@ -18,13 +18,13 @@ from iiwa_controller.iiwa_controller.utils import (
 from utils import (render_system_with_graphviz, add_package_paths_local,
                    SimpleTrajectorySource)
 from grasp_sampler import *
-from lime_bag import add_bag_of_lime, initialize_bag_of_lime
+from lime_bag import add_bag_of_lime, initialize_bag_of_lime, LimeBagVisualizer
 from inverse_kinematics import calc_joint_trajectory
 
 #%%
 # object SDFs.
-object_names = ['Lime', 'Cucumber', 'Mango']
-# object_names = ['Lime']
+# object_names = ['Lime', 'Cucumber', 'Mango']
+object_names = ['Cucumber']
 sdf_dir = os.path.join(os.path.dirname(__file__), 'cad_files')
 object_sdfs = [os.path.join(sdf_dir, name + '_simplified.sdf')
                for name in object_names]
@@ -67,13 +67,14 @@ def make_environment_model(
     ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
 
     object_bodies = []
+    lime_bag_bodies = []
     n_bags_of_lime = 0
     for i in range(num_objects):
         i_obj = rng.integers(len(object_sdfs))
         if object_names[i_obj] == 'Lime':
             lime_bodies = add_bag_of_lime(n_limes=5, bag_index=n_bags_of_lime,
                                           plant=plant, parser=parser)
-            object_bodies.append(lime_bodies)
+            lime_bag_bodies.append(lime_bodies)
             n_bags_of_lime += 1
         else:
             model = parser.AddModelFromFile(object_sdfs[i_obj], f"object{i}")
@@ -140,6 +141,12 @@ def make_environment_model(
     if draw:
         viz = ConnectMeshcatVisualizer(
             builder, scene_graph, zmq_url=zmq_url, prefix="environment")
+        # # visualizer of lime bags.
+        # lime_bag_vis = LimeBagVisualizer(lime_bag_bodies, viz.vis)
+        # builder.AddSystem(lime_bag_vis)
+        # builder.Connect(
+        #     plant.get_body_poses_output_port(),
+        #     lime_bag_vis.body_pose_input_port)
 
     diagram = builder.Build()
     context = diagram.CreateDefaultContext()
@@ -159,7 +166,7 @@ def make_environment_model(
         X_B = plant.EvalBodyPoseInWorld(plant_context, bin_body)
         z = 0.3
         l_spring = 0.08  # for lime bags.
-        for object_body in object_bodies:
+        for object_body in (lime_bag_bodies + object_bodies):
             tf = RigidTransform(
                 RotationMatrix(),
                 [rng.uniform(-.15, .15), rng.uniform(-.2, .2), z])
@@ -209,7 +216,7 @@ v.delete()
 
 # build environment and grasp sampler.
 env, context_env, plant_iiwa_controller, sim = make_environment_model(
-    directive=directive_file, rng=rng, draw=True, num_objects=7,
+    directive=directive_file, rng=rng, draw=True, num_objects=4,
     add_robot=True)
 grasp_sampler = GraspSampler(env)
 
