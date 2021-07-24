@@ -3,4 +3,4 @@ directives:
         file: package://local/two_bins_w_cameras.yaml
 
     - add_directives:
-        file: package://iiwa_controller/iiwa_and_schunk.yml
+        file: package://local/iiwa_and_schunk.yml

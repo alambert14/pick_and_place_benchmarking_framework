@@ -5,7 +5,7 @@ import pydrake
 from pydrake.all import (Parser, MultibodyPlant, ProcessModelDirectives,
                          LoadModelDirectives, LeafSystem, PiecewisePolynomial,
                          BasicVector, Joint, SpatialInertia, RigidTransform)
-from iiwa_controller.iiwa_controller.utils import models_dir as \
+from robotics_utilities.iiwa_controller.utils import models_dir as \
     iiwa_controller_models_dir
 
 models_dir = os.path.join(os.path.dirname(__file__), 'models')
@@ -31,6 +31,8 @@ def add_package_paths_local(parser: Parser):
 
     parser.package_map().Add('iiwa_controller',
                              iiwa_controller_models_dir)
+
+    parser.package_map().PopulateFromFolder(models_dir)
 
 
 class SimpleTrajectorySource(LeafSystem):

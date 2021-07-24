@@ -12,7 +12,7 @@ from pydrake.math import RollPitchYaw
 
 from manipulation.scenarios import AddRgbdSensors
 
-from iiwa_controller.iiwa_controller.utils import (
+from robotics_utilities.iiwa_controller.utils import (
     create_iiwa_controller_plant)
 
 from utils import (render_system_with_graphviz, add_package_paths_local,
@@ -114,7 +114,7 @@ def make_environment_model(
         robot_traj_source.set_name('robot_traj_source')
 
         # Gripper Finger Control
-        model_schunk = plant.GetModelInstanceByName('gripper')
+        model_schunk = plant.GetModelInstanceByName('schunk')
         Kp_schunk = np.array([500, 500.])
         Kd_schunk = np.array([10, 10.])
         gfc = PidController(Kp_schunk, np.zeros(2), Kd_schunk)
