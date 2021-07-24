@@ -30,6 +30,9 @@
             <drake:declare_convex xmlns:drake="drake.mit.edu"/>
           </mesh>
         </geometry>
+        <drake:proximity_properties>
+          <drake:rigid_hydroelastic/>
+        </drake:proximity_properties>
       </collision>
       <collision name="collision_0001">
         <geometry>
@@ -38,6 +41,9 @@
             <drake:declare_convex xmlns:drake="drake.mit.edu"/>
           </mesh>
         </geometry>
+        <drake:proximity_properties>
+          <drake:rigid_hydroelastic/>
+        </drake:proximity_properties>
       </collision>
     </link>
   </model>
