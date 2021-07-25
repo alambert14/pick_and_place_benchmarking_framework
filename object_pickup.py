@@ -6,7 +6,8 @@ import pydrake
 from pydrake.all import (
     PiecewisePolynomial, PiecewiseQuaternionSlerp, Parser, PidController,
     RandomGenerator, Simulator, ProcessModelDirectives, LoadModelDirectives,
-    MatrixGain, MultibodyPlant, InverseDynamicsController
+    MatrixGain, MultibodyPlant, InverseDynamicsController, ContactModel,
+    ConnectContactResultsToDrakeVisualizer, DrakeVisualizer
 )
 from pydrake.math import RollPitchYaw
 
@@ -60,7 +61,7 @@ def make_environment_model(
             os.path.dirname(__file__), "models/two_bins_w_cameras.yaml")
 
     builder = DiagramBuilder()
-    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=1e-3)
+    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=2e-4)
     parser = Parser(plant)
     AddPackagePaths(parser)  # Russ's manipulation repo.
     add_package_paths_local(parser)  # local.
@@ -80,6 +81,7 @@ def make_environment_model(
             model = parser.AddModelFromFile(object_sdfs[i_obj], f"object{i}")
             object_bodies.append(plant.GetBodyByName('base_link', model))
 
+    plant.set_contact_model(ContactModel.kHydroelasticWithFallback)
     plant.Finalize()
     AddRgbdSensors(builder, plant, scene_graph)
     plant_iiwa_contoller = None
@@ -141,6 +143,10 @@ def make_environment_model(
     if draw:
         viz = ConnectMeshcatVisualizer(
             builder, scene_graph, zmq_url=zmq_url, prefix="environment")
+
+        # DrakeVisualizer (for hydroelasitc visualization.)
+        DrakeVisualizer.AddToBuilder(builder=builder, scene_graph=scene_graph)
+        ConnectContactResultsToDrakeVisualizer(builder, plant)
         # # visualizer of lime bags.
         # lime_bag_vis = LimeBagVisualizer(lime_bag_bodies, viz.vis)
         # builder.AddSystem(lime_bag_vis)
@@ -208,7 +214,8 @@ def make_environment_model(
 directive_file = os.path.join(
     os.getcwd(), 'models', 'iiwa_schunk_and_two_bins.yml')
 
-rng = np.random.default_rng(seed=10001)
+rng = np.random.default_rng(seed=12153432)
+# seed 12153432 looks kind of nice.
 
 # clean up visualization.
 v = meshcat.Visualizer(zmq_url=zmq_url)
@@ -216,7 +223,7 @@ v.delete()
 
 # build environment and grasp sampler.
 env, context_env, plant_iiwa_controller, sim = make_environment_model(
-    directive=directive_file, rng=rng, draw=True, num_objects=4,
+    directive=directive_file, rng=rng, draw=True, num_objects=2,
     add_robot=True)
 grasp_sampler = GraspSampler(env)
 

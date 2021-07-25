@@ -54,7 +54,7 @@ def calc_joint_trajectory(X_WE_start: RigidTransform,
         # an initial guess.
         prog.SetInitialGuess(q_variables, q_knots[i-1])
         result = mp.Solve(prog)
-        assert result.get_solution_result() == mp.SolutionResult.kSolutionFound
+        assert result.is_success()
         q_knots[i] = result.GetSolution(q_variables)
 
     t_knots = np.linspace(0, duration, num_knot_points + 1)

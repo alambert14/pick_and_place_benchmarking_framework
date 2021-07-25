@@ -31,8 +31,13 @@
           </mesh>
         </geometry>
         <drake:proximity_properties>
+          <drake:mu_dynamic>0.5</drake:mu_dynamic>
+          <drake:mu_static>0.5</drake:mu_static>
+          <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
+          <drake:elastic_modulus>0.1e9</drake:elastic_modulus>
+          <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
           <drake:rigid_hydroelastic/>
-        </drake:proximity_properties>
+        </drake:proximity_properties >
       </collision>
       <collision name="collision_0001">
         <geometry>
@@ -42,6 +47,11 @@
           </mesh>
         </geometry>
         <drake:proximity_properties>
+          <drake:mu_dynamic>0.5</drake:mu_dynamic>    
+          <drake:mu_static>0.5</drake:mu_static>
+          <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
+          <drake:elastic_modulus>0.1e9</drake:elastic_modulus>
+          <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
           <drake:rigid_hydroelastic/>
         </drake:proximity_properties>
       </collision>

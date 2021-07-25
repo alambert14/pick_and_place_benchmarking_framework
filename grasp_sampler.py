@@ -112,6 +112,8 @@ def process_point_cloud(diagram, context, cameras, bin_name):
         pcd = pcd.crop(
             o3d.geometry.AxisAlignedBoundingBox(min_bound=crop_min,
                                                 max_bound=crop_max))
+        if pcd.is_empty():
+            continue
 
         pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(
             radius=0.1, max_nn=30))
@@ -258,6 +260,8 @@ class GraspSampler:
     def sample_grasp_candidates(self, context_env, draw_grasp_candidates=True):
         cloud = process_point_cloud(self.env, context_env,
                                     ["camera0", "camera1", "camera2"], "bin0")
+        if cloud.is_empty():
+            return []
 
         draw_open3d_point_cloud(self.viz.vis['cloud'], cloud, size=0.003)
 
