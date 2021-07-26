@@ -214,7 +214,7 @@ def make_environment_model(
 directive_file = os.path.join(
     os.getcwd(), 'models', 'iiwa_schunk_and_two_bins.yml')
 
-rng = np.random.default_rng(seed=12153432)
+rng = np.random.default_rng(seed=1215232)
 # seed 12153432 looks kind of nice.
 
 # clean up visualization.
@@ -223,7 +223,7 @@ v.delete()
 
 # build environment and grasp sampler.
 env, context_env, plant_iiwa_controller, sim = make_environment_model(
-    directive=directive_file, rng=rng, draw=True, num_objects=2,
+    directive=directive_file, rng=rng, draw=True, num_objects=5,
     add_robot=True)
 grasp_sampler = GraspSampler(env)
 

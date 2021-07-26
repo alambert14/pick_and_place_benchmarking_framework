@@ -9,7 +9,7 @@ directives:
 
 - add_model:
     name: bin0
-    file: package://manipulation_station/bin.sdf
+    file: package://local/bin.sdf
 
 - add_weld:
     parent: bin0_origin
