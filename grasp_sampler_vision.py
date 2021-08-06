@@ -87,7 +87,10 @@ def grasp_candidate_cost(plant_context, cloud, plant, scene_graph,
 
 
 def process_point_cloud(diagram, context, cameras, bin_name):
-    """A "no frills" version of the example above, that returns the down-sampled point cloud"""
+    """
+    A "no frills" version of the example above, that returns the down-sampled
+    point cloud.
+    """
     plant = diagram.GetSubsystemByName("plant")
     plant_context = plant.GetMyContextFromRoot(context)
 
@@ -134,8 +137,10 @@ def generate_grasp_candidate_antipodal(plant_context, cloud, plant, scene_graph,
                                        scene_graph_context, rng,
                                        meshcat_vis=None):
     """
-    Picks a random point in the cloud, and aligns the robot finger with the normal of that pixel.
-    The rotation around the normal axis is drawn from a uniform distribution over [min_roll, max_roll].
+    Picks a random point in the cloud, and aligns the robot finger with the
+     normal of that pixel.
+    The rotation around the normal axis is drawn from a uniform distribution
+     over [min_roll, max_roll].
     """
     n_tries = 0
     n_tries_ub = 100
@@ -222,7 +227,7 @@ def draw_grasp_candidate(X_G, prefix='gripper', draw_frames=True):
     diagram.Publish(context)
 
 
-class GraspSampler:
+class GraspSamplerVision:
     def __init__(self, environment: Diagram):
         self.rng = np.random.default_rng(seed=10001)
         self.env = environment

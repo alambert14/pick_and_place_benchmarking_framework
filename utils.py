@@ -1,10 +1,12 @@
 import os
+from typing import List
 
 import numpy as np
 import pydrake
 from pydrake.all import (Parser, MultibodyPlant, ProcessModelDirectives,
                          LoadModelDirectives, LeafSystem, PiecewisePolynomial,
                          BasicVector, Joint, SpatialInertia, RigidTransform)
+from pydrake.trajectories import PiecewisePolynomial
 from robotics_utilities.iiwa_controller.utils import models_dir as \
     iiwa_controller_models_dir
 
@@ -53,3 +55,18 @@ class SimpleTrajectorySource(LeafSystem):
 
     def set_t_start(self, t_start_new: float):
         self.t_start = t_start_new
+
+
+def concatenate_traj_list(traj_list: List[PiecewisePolynomial]):
+    """
+    Concatenates a list of PiecewisePolynomials into a single
+        PiecewisePolynomial.
+    """
+    traj = traj_list[0]
+    for a in traj_list[1:]:
+        dt = traj.end_time()
+        a.shiftRight(dt)
+        traj.ConcatenateInTime(a)
+        a.shiftRight(-dt)
+
+    return traj
