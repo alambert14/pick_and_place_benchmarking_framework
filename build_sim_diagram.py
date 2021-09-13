@@ -90,18 +90,18 @@ def set_object_drop_pose(context_environment: Context,
                          bin_name: str,
                          object_bodies: List,
                          lime_bag_bodies: List,
-                         rng):
+                         rng,
+                         R_WB=RotationMatrix(),
+                         x_lb=-0.15, x_ub=0.15, y_lb=-0.2, y_ub=0.2):
     generator = RandomGenerator(rng.integers(1000))  # this is for c++
     plant_context = plant.GetMyContextFromRoot(context_environment)
     bin_instance = plant.GetModelInstanceByName(bin_name)
     bin_body = plant.GetBodyByName("bin_base", bin_instance)
     X_B = plant.EvalBodyPoseInWorld(plant_context, bin_body)
-    z = 0.3
+    z = 0.2
     l_spring = 0.08  # for lime bags.
     for object_body in (lime_bag_bodies + object_bodies):
-        tf = RigidTransform(
-            RotationMatrix(),
-            [rng.uniform(-.15, .15), rng.uniform(-.2, .2), z])
+        tf = RigidTransform(R_WB, [rng.uniform(x_lb, x_ub), rng.uniform(y_lb, y_ub), z])
 
         if isinstance(object_body, list):
             # bag of lime

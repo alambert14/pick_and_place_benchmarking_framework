@@ -15,7 +15,7 @@ from manipulation.scenarios import AddRgbdSensors
 from manipulation.utils import AddPackagePaths
 
 from utils import (SimpleTrajectorySource, concatenate_traj_list,
-                   add_package_paths_local)
+                   add_package_paths_local, render_system_with_graphviz)
 from grasp_sampler_vision import GraspSamplerVision, zmq_url
 from inverse_kinematics import calc_joint_trajectory
 from build_sim_diagram import (add_controlled_iiwa_and_trj_source, add_objects,
@@ -56,7 +56,7 @@ def make_environment_model(
         rng=rng)
 
     # Set contact model.
-    plant.set_contact_model(ContactModel.kHydroelasticWithFallback)
+    plant.set_contact_model(ContactModel.kPointContactOnly)
     plant.Finalize()
     AddRgbdSensors(builder, plant, scene_graph)
 
@@ -105,6 +105,7 @@ def make_environment_model(
         #     lime_bag_vis.body_pose_input_port)
 
     diagram = builder.Build()
+    render_system_with_graphviz(diagram)
     context = diagram.CreateDefaultContext()
 
     # Set initial conditions.
