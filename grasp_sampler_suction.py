@@ -1,7 +1,7 @@
 from typing import List
 import numpy as np
 
-from pydrake.all import RigidTransform
+from pydrake.math import RigidTransform, RollPitchYaw
 
 
 def calc_suction_ee_pose(X_WB_list: List[RigidTransform]):
@@ -18,13 +18,14 @@ def calc_suction_ee_pose(X_WB_list: List[RigidTransform]):
         2. highest among the first.
     '''
 
-    small_angle = angles_with_world_z > np.cos(np.pi / 6)
+    small_angle = angles_with_world_z > np.cos(np.pi / 4)
     idx_best = np.arange(n_boxes)[small_angle][np.argmax(world_z[small_angle])]
 
     X_WB_best = X_WB_list[idx_best]
     R_WB_best = X_WB_best.rotation()
-    X_WE = RigidTransform(R_WB_best,
-                          X_WB_best.translation() + R_WB_best.matrix()[:, 2] * 0.2)
+    X_WE = RigidTransform(
+        R_WB_best.multiply(RollPitchYaw(0, np.pi, 0).ToRotationMatrix()),
+        X_WB_best.translation() + R_WB_best.matrix()[:, 2] * 0.3)
 
     return X_WE
 

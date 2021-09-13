@@ -17,6 +17,7 @@ from utils import (SimpleTrajectorySource, concatenate_traj_list,
 from build_sim_diagram import (add_controlled_iiwa_and_trj_source,
     set_object_drop_pose)
 from grasp_sampler_suction import calc_suction_ee_pose
+from inverse_kinematics import calc_joint_trajectory
 
 
 
@@ -24,8 +25,26 @@ from grasp_sampler_suction import calc_suction_ee_pose
 object_sdf_path = os.path.join(os.path.dirname(__file__), 'models',
                                'blue_berry_box.sdf')
 
+# commonly used trajectories
+nq = 7
 q_iiwa_bin0 = np.array([-np.pi / 2, 0.1, 0, -1.2, 0, 1.6, 0])
 q_iiwa_bin1 = np.array([0, 0.1, 0, -1.2, 0, 1.6, 0])
+
+q_traj_01 = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
+    [0, 3], np.vstack([q_iiwa_bin0, q_iiwa_bin1]).T,
+    np.zeros(nq), np.zeros((nq)))
+
+
+def get_q_traj_10():
+    q_traj_10 = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
+        [0, 3], np.vstack([q_iiwa_bin1, q_iiwa_bin0]).T,
+        np.zeros(nq), np.zeros((nq)))
+
+    return q_traj_10
+
+
+q_traj_1_hold = PiecewisePolynomial.ZeroOrderHold(
+    [0, 1], np.vstack([q_iiwa_bin1, q_iiwa_bin1]).T)
 
 
 def add_blueberry_boxes(n_objects: int, plant: MultibodyPlant,
@@ -58,6 +77,7 @@ def make_environment_model(
     if draw:
         viz = ConnectMeshcatVisualizer(
             builder, scene_graph, zmq_url=zmq_url, prefix="environment")
+        DrakeVisualizer.AddToBuilder(builder=builder, scene_graph=scene_graph)
         if draw_contact:
             viz_c = MeshcatContactVisualizer(viz, plant=plant)
             builder.AddSystem(viz_c)
@@ -99,35 +119,66 @@ def make_environment_model(
     return diagram, context, plant_iiwa_controller, simulator, box_bodies
 
 
+class EnvSim:
+    def __init__(self, n_objects: int):
+        directive_file = os.path.join(
+            os.getcwd(), 'models', 'iiwa_suction_and_two_bins.yml')
+        rng = np.random.default_rng(seed=1215232)
+
+        (self.env, self.context, self.plant_iiwa_c, self.sim,
+         self.box_bodies) = make_environment_model(
+            directive=directive_file, rng=rng, draw=True, n_objects=n_objects)
+
+        self.iiwa_model = self.plant_iiwa_c.GetModelInstanceByName('iiwa')
+        self.frame_E = self.plant_iiwa_c.GetBodyByName('iiwa_link_7').body_frame()
+
+        self.robot_traj_source = self.env.GetSubsystemByName('robot_traj_source')
+        self.plant_env = self.env.GetSubsystemByName('plant')
+        self.viz = self.env.GetSubsystemByName('meshcat_visualizer')
+
+        self.context_plant_env = self.plant_env.GetMyContextFromRoot(self.context)
+
+    def calc_ee_pose(self, q_iiwa: np.ndarray):
+        context = self.plant_iiwa_c.CreateDefaultContext()
+        self.plant_iiwa_c.SetPositions(context, q_iiwa)
+        return self.plant_iiwa_c.CalcRelativeTransform(
+            context, self.plant_iiwa_c.world_frame(), self.frame_E)
+
+    def get_box_poses(self):
+        X_WB_list = []
+        for body in self.box_bodies:
+            X_WB_list.append(
+                self.plant_env.EvalBodyPoseInWorld(self.context_plant_env, body))
+
+        return X_WB_list
+
+
 #%%
-directive_file = os.path.join(
-    os.getcwd(), 'models', 'iiwa_suction_and_two_bins.yml')
-
-rng = np.random.default_rng(seed=1215232)
-
 # clean up visualization.
 v = meshcat.Visualizer(zmq_url=zmq_url)
 v.delete()
 
-env, context_env, plant_iiwa_controller, sim, box_bodies = make_environment_model(
-    directive=directive_file, rng=rng, draw=True, n_objects=7)
+env_sim = EnvSim(n_objects=7)
 
+# home EE poses for bin1 and bin2.
+X_WE_bin0 = env_sim.calc_ee_pose(q_iiwa_bin0)
+X_WE_bin1 = env_sim.calc_ee_pose(q_iiwa_bin1)
 
-#%% home EE poses for bin1 and bin2.
-context_iiwa_plant = plant_iiwa_controller.CreateDefaultContext()
-iiwa_model = plant_iiwa_controller.GetModelInstanceByName('iiwa')
-frame_E = plant_iiwa_controller.GetBodyByName('wsg_equivalent').body_frame()
+X_WB_list = env_sim.get_box_poses()
+X_WE_suck = calc_suction_ee_pose(X_WB_list)
 
-plant_iiwa_controller.SetPositions(context_iiwa_plant, q_iiwa_bin0)
-X_WE_bin0 = plant_iiwa_controller.CalcRelativeTransform(
-    context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
+q_traj_0_to_above, q_traj_above_to_0 = calc_joint_trajectory(
+    X_WE_start=X_WE_bin0, X_WE_final=X_WE_suck, duration=3,
+    frame_E=env_sim.frame_E, plant=env_sim.plant_iiwa_c,
+    q_initial_guess=q_iiwa_bin0)
 
-plant_iiwa_controller.SetPositions(context_iiwa_plant, q_iiwa_bin1)
-X_WE_bin1 = plant_iiwa_controller.CalcRelativeTransform(
-    context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
+# update time in trajectory sources.
+q_traj = concatenate_traj_list([get_q_traj_10(), q_traj_0_to_above])
+t_current = env_sim.context.get_time()
+env_sim.robot_traj_source.set_t_start(t_current)
+env_sim.robot_traj_source.q_traj = q_traj
 
-robot_traj_source = env.GetSubsystemByName('robot_traj_source')
-plant_env = env.GetSubsystemByName('plant')
-
+# simulate forward.
+env_sim.sim.AdvanceTo(t_current + q_traj.end_time())
 
 
