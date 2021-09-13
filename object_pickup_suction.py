@@ -109,7 +109,7 @@ rng = np.random.default_rng(seed=1215232)
 v = meshcat.Visualizer(zmq_url=zmq_url)
 v.delete()
 
-env, context_env, sim, plant_iiwa_controller, box_bodies = make_environment_model(
+env, context_env, plant_iiwa_controller, sim, box_bodies = make_environment_model(
     directive=directive_file, rng=rng, draw=True, n_objects=7)
 
 
