@@ -53,7 +53,7 @@ class SuctionSystem(LeafSystem):
 
         easf_list = []
         for p_Wc_W, p_Bc in zip(p_Wc_W_list, p_Bc_list):
-            f = suction_strength * 3 * (p_WL7o_W - p_Wc_W)
+            f = suction_strength * 1.0 * (p_WL7o_W - p_Wc_W)
             F_Bq_W = SpatialForce(np.zeros(3), f)
 
             easf = ExternallyAppliedSpatialForce()
@@ -90,7 +90,7 @@ def calc_suction_ee_pose(X_WB_list: List[RigidTransform]):
     R_WB_best = X_WB_best.rotation()
     X_WE = RigidTransform(
         R_WB_best.multiply(RollPitchYaw(0, np.pi, 0).ToRotationMatrix()),
-        X_WB_best.translation() + R_WB_best.matrix()[:, 2] * 0.3)
+        X_WB_best.translation() + R_WB_best.matrix()[:, 2] * 0.29)
 
     return X_WE, idx_best
 

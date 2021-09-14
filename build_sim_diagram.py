@@ -53,9 +53,9 @@ def add_controlled_iiwa_and_trj_source(
         gravity=plant.gravity_field().gravity_vector(),
         add_schunk_inertia=add_schunk_inertia)
 
-    Kp_iiwa = np.ones(7) * 100
+    Kp_iiwa = np.array([800, 600, 600, 400, 400, 400, 200])
     Kd_iiwa = 2 * np.sqrt(Kp_iiwa)
-    Ki_iiwa = np.ones(7)
+    Ki_iiwa = np.zeros(7)
     idc = InverseDynamicsController(plant_iiwa_controller, Kp_iiwa,
                                     Ki_iiwa, Kd_iiwa, False)
     builder.AddSystem(idc)

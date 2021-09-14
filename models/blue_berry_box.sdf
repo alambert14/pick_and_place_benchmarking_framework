@@ -2,7 +2,7 @@
   <model name="blue_berry_box">
     <link name="base_link">
       <inertial>
-        <mass>0.25</mass>
+        <mass>0.05</mass>
         <inertia>
           <ixx>3.177e-04</ixx>
           <ixy>0.000e+00</ixy>

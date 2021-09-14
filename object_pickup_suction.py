@@ -120,11 +120,11 @@ def make_environment_model(
             x_lb=-0.15, x_ub=0.05, y_lb=-0.2, y_ub=0.2)
 
         simulator = Simulator(diagram, context)
-        viz.start_recording()
-        simulator.AdvanceTo(5.0)
+        # viz.start_recording()
         simulator.set_target_realtime_rate(0.)
-        viz.stop_recording()
-        viz.publish_recording()
+        simulator.AdvanceTo(5.0)
+        # viz.stop_recording()
+        # viz.publish_recording()
 
     elif draw:
         viz.load()
@@ -137,7 +137,7 @@ class EnvSim:
     def __init__(self, n_objects: int):
         directive_file = os.path.join(
             os.getcwd(), 'models', 'iiwa_suction_and_two_bins.yml')
-        rng = np.random.default_rng(seed=1215232)
+        rng = np.random.default_rng(seed=1215234)
 
         (self.env, self.context, self.plant_iiwa_c, self.sim,
          self.box_bodies) = make_environment_model(
@@ -174,7 +174,7 @@ class EnvSim:
 v = meshcat.Visualizer(zmq_url=zmq_url)
 v.delete()
 
-env_sim = EnvSim(n_objects=1)
+env_sim = EnvSim(n_objects=7)
 
 durations = np.array([3, 2, 2, 2])
 # durations:
@@ -184,7 +184,7 @@ durations = np.array([3, 2, 2, 2])
 # 3: suction to 0.
 
 t_knots = np.cumsum(np.hstack([[0], durations]))
-suction_setpoints = np.array([[0, 0, 1, 1, 1]])
+suction_setpoints = np.array([[0, 0, 1, 1, 1]]) * 1.0
 suction_traj = PiecewisePolynomial.ZeroOrderHold(t_knots, suction_setpoints)
 env_sim.suction_traj_source.q_traj = suction_traj
 
