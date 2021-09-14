@@ -7,6 +7,9 @@ from pydrake.all import (LeafSystem, AbstractValue, BasicVector,
 from pydrake.math import RigidTransform, RollPitchYaw
 
 
+k_suction_offset_z = 0.29
+
+
 class SuctionSystem(LeafSystem):
     def __init__(self, box_body_indices: List[BodyIndex],
                  l7_body_index: BodyIndex):
@@ -73,9 +76,19 @@ def calc_suction_ee_pose(X_WB_list: List[RigidTransform]):
     n_boxes = len(X_WB_list)
     angles_with_world_z = np.zeros(n_boxes)
     world_z = np.zeros(n_boxes)
+    X_WB_adjusted_list = []  # if z is pointing downwards, flip it back up.
     for i, X_WB in enumerate(X_WB_list):
-        angles_with_world_z[i] = X_WB.rotation().matrix()[2, 2]
-        world_z[i] = X_WB.translation()[2]
+        angle = X_WB.rotation().matrix()[2, 2]
+        X_WB_adjusted = RigidTransform(X_WB)
+        if angle < 0:
+            X_WB_adjusted = RigidTransform(
+                X_WB.rotation().multiply(RollPitchYaw(0, np.pi, 0).ToRotationMatrix()),
+                X_WB.translation())
+            angle *= -1
+
+        angles_with_world_z[i] = angle
+        world_z[i] = X_WB_adjusted.translation()[2]
+        X_WB_adjusted_list.append(X_WB_adjusted)
 
     '''
     best box to grasp: 
@@ -86,11 +99,11 @@ def calc_suction_ee_pose(X_WB_list: List[RigidTransform]):
     small_angle = angles_with_world_z > np.cos(np.pi / 4)
     idx_best = np.arange(n_boxes)[small_angle][np.argmax(world_z[small_angle])]
 
-    X_WB_best = X_WB_list[idx_best]
+    X_WB_best = X_WB_adjusted_list[idx_best]
     R_WB_best = X_WB_best.rotation()
     X_WE = RigidTransform(
         R_WB_best.multiply(RollPitchYaw(0, np.pi, 0).ToRotationMatrix()),
-        X_WB_best.translation() + R_WB_best.matrix()[:, 2] * 0.29)
+        X_WB_best.translation() + R_WB_best.matrix()[:, 2] * k_suction_offset_z)
 
     return X_WE, idx_best
 

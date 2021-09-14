@@ -19,9 +19,9 @@ def calc_joint_trajectory(X_WE_start: RigidTransform,
         [0, duration], np.vstack([X_WE_start.translation(),
                                  X_WE_final.translation()]).T)
 
-    num_knot_points = 10
+    num_knot_points = 15
     position_tolerance = 0.002
-    angle_tolerance = 0.005
+    angle_tolerance = 0.01
     nq = 7
 
     q_knots = np.zeros((num_knot_points + 1, nq))

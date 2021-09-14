@@ -8,20 +8,18 @@ from pydrake.all import (
     DiagramBuilder, AddMultibodyPlantSceneGraph, ProcessModelDirectives,
     LoadModelDirectives, ConnectMeshcatVisualizer,
     MeshcatContactVisualizer)
-from pydrake.math import RollPitchYaw
+from pydrake.math import RollPitchYaw, RigidTransform
 from manipulation.utils import AddPackagePaths
 from grasp_sampler_vision import zmq_url
 
 from utils import (SimpleTrajectorySource, concatenate_traj_list,
                    add_package_paths_local, render_system_with_graphviz)
 from build_sim_diagram import (add_controlled_iiwa_and_trj_source,
-    set_object_drop_pose)
-from grasp_sampler_suction import calc_suction_ee_pose, SuctionSystem
+                               set_object_drop_pose)
+from grasp_sampler_suction import calc_suction_ee_pose, SuctionSystem, k_suction_offset_z
 from inverse_kinematics import calc_joint_trajectory
 
-
-
-#%%
+# %%
 object_sdf_path = os.path.join(os.path.dirname(__file__), 'models',
                                'blue_berry_box.sdf')
 
@@ -57,8 +55,7 @@ def add_blueberry_boxes(n_objects: int, plant: MultibodyPlant,
 
 
 def make_environment_model(
-        directive, rng, draw=False, n_objects=0, bin_name="bin0", draw_contact=False):
-
+        directive, rng, draw=False, n_objects=0, draw_contact=False):
     builder = DiagramBuilder()
     plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=1e-3)
     parser = Parser(plant)
@@ -75,8 +72,24 @@ def make_environment_model(
         builder, plant, q0=q_iiwa_bin1, add_schunk_inertia=False)
 
     if draw:
+        # draw body frames of the bins.
+        bin_names = ["bin0", "bin1"]
+        bin_instances = [plant.GetModelInstanceByName(name) for name in bin_names]
+        frames_to_draw = [
+            plant.GetBodyFrameIdOrThrow(
+                plant.GetBodyByName("bin_base", bin_instance).index())
+            for bin_instance in bin_instances]
+
+        # draw boxes too.
+        for body in box_bodies:
+            frames_to_draw.append(plant.GetBodyFrameIdOrThrow(body.index()))
+
+        frames_to_draw.append(
+            plant.GetBodyFrameIdOrThrow(plant.GetBodyByName("iiwa_link_7").index()))
+
         viz = ConnectMeshcatVisualizer(
-            builder, scene_graph, zmq_url=zmq_url, prefix="environment")
+            builder, scene_graph, zmq_url=zmq_url, prefix="environment",
+            frames_to_draw=frames_to_draw)
         DrakeVisualizer.AddToBuilder(builder=builder, scene_graph=scene_graph)
         if draw_contact:
             viz_c = MeshcatContactVisualizer(viz, plant=plant)
@@ -112,11 +125,11 @@ def make_environment_model(
         set_object_drop_pose(
             context_environment=context,
             plant=plant,
-            bin_name=bin_name,
+            bin_name="bin0",
             object_bodies=box_bodies,
             lime_bag_bodies=[],
             rng=rng,
-            R_WB=RollPitchYaw(0, 0, np.pi/2),
+            R_WB=RollPitchYaw(0, 0, np.pi / 2),
             x_lb=-0.15, x_ub=0.05, y_lb=-0.2, y_ub=0.2)
 
         simulator = Simulator(diagram, context)
@@ -168,23 +181,36 @@ class EnvSim:
 
         return X_WB_list
 
+    def get_bin_pose(self, bin_name):
+        bin_instance = self.plant_env.GetModelInstanceByName(bin_name)
+        bin_body = self.plant_env.GetBodyByName("bin_base", bin_instance)
+        return self.plant_env.EvalBodyPoseInWorld(self.context_plant_env, bin_body)
 
-#%%
+
+# %%
 # clean up visualization.
 v = meshcat.Visualizer(zmq_url=zmq_url)
 v.delete()
 
-env_sim = EnvSim(n_objects=7)
+n_objects = 7
+env_sim = EnvSim(n_objects=n_objects)
+X_WBin1 = env_sim.get_bin_pose("bin1")
 
-durations = np.array([3, 2, 2, 2])
-# durations:
+'''
+durations:
 # 0: 1 to 0
 # 1: 0 to suction
 # 2: suction
 # 3: suction to 0.
+# 4: 0 to 1
+# 5: 1 to drop
+# 6: drop
+# 7: drop to 1
+'''
+durations = np.array([3, 2, 2, 2, 3, 2, 2, 2])
 
 t_knots = np.cumsum(np.hstack([[0], durations]))
-suction_setpoints = np.array([[0, 0, 1, 1, 1]]) * 1.0
+suction_setpoints = np.array([[0, 0, 1, 1, 1, 1, 0, 0, 0]]) * 1.0
 suction_traj = PiecewisePolynomial.ZeroOrderHold(t_knots, suction_setpoints)
 env_sim.suction_traj_source.q_traj = suction_traj
 
@@ -192,35 +218,62 @@ env_sim.suction_traj_source.q_traj = suction_traj
 X_WE_bin0 = env_sim.calc_ee_pose(q_iiwa_bin0)
 X_WE_bin1 = env_sim.calc_ee_pose(q_iiwa_bin1)
 
-X_WB_list = env_sim.get_box_poses()
-X_WE_suck, idx_suck = calc_suction_ee_pose(X_WB_list)
-
+box_to_pick_indices = list(np.arange(n_objects))
+n_packed = 0
 
 env_sim.viz.reset_recording()
 env_sim.viz.start_recording()
+while len(box_to_pick_indices) > 0:
+    # Find box to pick up by suction.
+    X_WB_list = env_sim.get_box_poses()
+    X_WE_suck, idx_into_sublist_suck = calc_suction_ee_pose(
+        [X_WB_list[i] for i in box_to_pick_indices])
+    idx_suck = box_to_pick_indices[idx_into_sublist_suck]
+    box_to_pick_indices.remove(idx_suck)
 
-# 0 to suction
-q_traj_0_to_suction, q_traj_suction_to_0 = calc_joint_trajectory(
-    X_WE_start=X_WE_bin0, X_WE_final=X_WE_suck, duration=durations[1],
-    frame_E=env_sim.frame_E, plant=env_sim.plant_iiwa_c,
-    q_initial_guess=q_iiwa_bin0)
+    # 0 to suction
+    q_traj_0_to_suction, q_traj_suction_to_0 = calc_joint_trajectory(
+        X_WE_start=X_WE_bin0, X_WE_final=X_WE_suck, duration=durations[1],
+        frame_E=env_sim.frame_E, plant=env_sim.plant_iiwa_c,
+        q_initial_guess=q_iiwa_bin0)
 
-# hold
-q_suction = q_traj_0_to_suction.value(q_traj_0_to_suction.end_time()).ravel()
-q_traj_suction = PiecewisePolynomial.ZeroOrderHold(
-    [0, durations[2]], np.vstack([q_suction, q_suction]).T)
+    # hold at suction
+    q_suction = q_traj_0_to_suction.value(q_traj_0_to_suction.end_time()).ravel()
+    q_traj_suction = PiecewisePolynomial.ZeroOrderHold(
+        [0, durations[2]], np.vstack([q_suction, q_suction]).T)
 
-# update time in trajectory sources.
-q_traj = concatenate_traj_list([
-    get_q_traj_10(), q_traj_0_to_suction, q_traj_suction, q_traj_suction_to_0])
-t_current = env_sim.context.get_time()
-env_sim.robot_traj_source.set_t_start(t_current)
-env_sim.robot_traj_source.q_traj = q_traj
+    # 1 to drop
+    R_WE_drop = RollPitchYaw(np.pi, 0, np.pi).ToRotationMatrix()
+    z_W_offset = 0.03 + k_suction_offset_z + n_packed * 0.045
+    X_WE_drop = RigidTransform(
+        R_WE_drop,
+        X_WBin1.translation() + np.array([0, 0, 1]) * z_W_offset)
+    q_traj_1_to_drop, q_traj_drop_to_1 = calc_joint_trajectory(
+        X_WE_start=X_WE_bin1, X_WE_final=X_WE_drop, duration=durations[5],
+        frame_E=env_sim.frame_E, plant=env_sim.plant_iiwa_c,
+        q_initial_guess=q_iiwa_bin1)
 
-env_sim.suction_traj_source.set_t_start(t_current)
-env_sim.suc_sys.idx_box_to_suck = idx_suck
+    # hold at drop
+    q_drop = q_traj_drop_to_1.value(0).ravel()
+    q_traj_drop = PiecewisePolynomial.ZeroOrderHold(
+        [0, durations[6]], np.vstack([q_drop, q_drop]).T)
 
-# simulate forward.
-env_sim.sim.AdvanceTo(t_current + q_traj.end_time())
+    # update time in trajectory sources.
+    q_traj = concatenate_traj_list([
+        get_q_traj_10(), q_traj_0_to_suction, q_traj_suction, q_traj_suction_to_0,
+        q_traj_01, q_traj_1_to_drop, q_traj_drop, q_traj_drop_to_1])
+    t_current = env_sim.context.get_time()
+    env_sim.robot_traj_source.set_t_start(t_current)
+    env_sim.robot_traj_source.q_traj = q_traj
 
+    env_sim.suction_traj_source.set_t_start(t_current)
+    env_sim.suc_sys.idx_box_to_suck = idx_suck
+
+    # simulate forward.
+    env_sim.sim.AdvanceTo(t_current + q_traj.end_time())
+    n_packed += 1
+
+env_sim.viz.stop_recording()
 env_sim.viz.publish_recording()
+
+res = env_sim.viz.vis.static_html()
