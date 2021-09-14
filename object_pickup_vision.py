@@ -61,8 +61,8 @@ def make_environment_model(
     AddRgbdSensors(builder, plant, scene_graph)
 
     # Robot control.
-    plant_iiwa_controller, model_iiwa = add_controlled_iiwa_and_trj_source(
-        builder, plant, q0=q_iiwa_bin1)
+    plant_iiwa_controller, model_iiwa = add_controlled_iiwa_and_trj_source(builder, plant,
+                                                                           q0=q_iiwa_bin1)
 
     # Gripper Finger Control
     model_schunk = plant.GetModelInstanceByName('schunk')

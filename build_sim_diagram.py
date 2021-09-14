@@ -46,18 +46,12 @@ def add_objects(n_objects: int, obj_names: List[str], obj_sdfs: Dict[str, str],
 
 
 def add_controlled_iiwa_and_trj_source(
-        builder: DiagramBuilder, plant: MultibodyPlant, q0: np.ndarray):
-    """
-
-    :param builder:
-    :param plant:
-    :param q0:
-    :return:
-    """
+        builder: DiagramBuilder, plant: MultibodyPlant, q0: np.ndarray,
+        add_schunk_inertia=True):
     # TODO: make inertia different for different end effectors.
     plant_iiwa_controller, _ = create_iiwa_controller_plant(
         gravity=plant.gravity_field().gravity_vector(),
-        add_schunk_inertia=True)
+        add_schunk_inertia=add_schunk_inertia)
 
     Kp_iiwa = np.ones(7) * 100
     Kd_iiwa = 2 * np.sqrt(Kp_iiwa)

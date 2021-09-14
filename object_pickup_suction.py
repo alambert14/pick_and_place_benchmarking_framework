@@ -16,7 +16,7 @@ from utils import (SimpleTrajectorySource, concatenate_traj_list,
                    add_package_paths_local, render_system_with_graphviz)
 from build_sim_diagram import (add_controlled_iiwa_and_trj_source,
     set_object_drop_pose)
-from grasp_sampler_suction import calc_suction_ee_pose
+from grasp_sampler_suction import calc_suction_ee_pose, SuctionSystem
 from inverse_kinematics import calc_joint_trajectory
 
 
@@ -44,7 +44,7 @@ def get_q_traj_10():
 
 
 q_traj_1_hold = PiecewisePolynomial.ZeroOrderHold(
-    [0, 1], np.vstack([q_iiwa_bin1, q_iiwa_bin1]).T)
+    [0, 2], np.vstack([q_iiwa_bin1, q_iiwa_bin1]).T)
 
 
 def add_blueberry_boxes(n_objects: int, plant: MultibodyPlant,
@@ -60,7 +60,7 @@ def make_environment_model(
         directive, rng, draw=False, n_objects=0, bin_name="bin0", draw_contact=False):
 
     builder = DiagramBuilder()
-    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=1e-4)
+    plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=1e-3)
     parser = Parser(plant)
     AddPackagePaths(parser)  # Russ's manipulation repo.
     add_package_paths_local(parser)  # local.
@@ -72,7 +72,7 @@ def make_environment_model(
 
     # Robot control.
     plant_iiwa_controller, model_iiwa = add_controlled_iiwa_and_trj_source(
-        builder, plant, q0=q_iiwa_bin1)
+        builder, plant, q0=q_iiwa_bin1, add_schunk_inertia=False)
 
     if draw:
         viz = ConnectMeshcatVisualizer(
@@ -83,6 +83,20 @@ def make_environment_model(
             builder.AddSystem(viz_c)
             builder.Connect(plant.get_contact_results_output_port(),
                             viz_c.GetInputPort('contact_results'))
+
+    # Suction control.
+    ss = SuctionSystem(box_body_indices=[body.index() for body in box_bodies],
+                       l7_body_index=plant.GetBodyByName("iiwa_link_7").index())
+    builder.AddSystem(ss)
+    builder.Connect(plant.get_body_poses_output_port(),
+                    ss.body_poses_input_port)
+    builder.Connect(ss.easf_output_port, plant.get_applied_spatial_force_input_port())
+
+    suction_setpoints = PiecewisePolynomial.ZeroOrderHold([0, 1], np.array([[0, 0]]))
+    suction_traj_source = SimpleTrajectorySource(suction_setpoints)
+    suction_traj_source.set_name("suction_traj_source")
+    builder.AddSystem(suction_traj_source)
+    builder.Connect(suction_traj_source.x_output_port, ss.suction_strength_input_port)
 
     diagram = builder.Build()
     context = diagram.CreateDefaultContext()
@@ -133,8 +147,10 @@ class EnvSim:
         self.frame_E = self.plant_iiwa_c.GetBodyByName('iiwa_link_7').body_frame()
 
         self.robot_traj_source = self.env.GetSubsystemByName('robot_traj_source')
+        self.suction_traj_source = self.env.GetSubsystemByName('suction_traj_source')
         self.plant_env = self.env.GetSubsystemByName('plant')
         self.viz = self.env.GetSubsystemByName('meshcat_visualizer')
+        self.suc_sys = self.env.GetSubsystemByName('suction_system')
 
         self.context_plant_env = self.plant_env.GetMyContextFromRoot(self.context)
 
@@ -158,27 +174,53 @@ class EnvSim:
 v = meshcat.Visualizer(zmq_url=zmq_url)
 v.delete()
 
-env_sim = EnvSim(n_objects=7)
+env_sim = EnvSim(n_objects=1)
+
+durations = np.array([3, 2, 2, 2])
+# durations:
+# 0: 1 to 0
+# 1: 0 to suction
+# 2: suction
+# 3: suction to 0.
+
+t_knots = np.cumsum(np.hstack([[0], durations]))
+suction_setpoints = np.array([[0, 0, 1, 1, 1]])
+suction_traj = PiecewisePolynomial.ZeroOrderHold(t_knots, suction_setpoints)
+env_sim.suction_traj_source.q_traj = suction_traj
 
 # home EE poses for bin1 and bin2.
 X_WE_bin0 = env_sim.calc_ee_pose(q_iiwa_bin0)
 X_WE_bin1 = env_sim.calc_ee_pose(q_iiwa_bin1)
 
 X_WB_list = env_sim.get_box_poses()
-X_WE_suck = calc_suction_ee_pose(X_WB_list)
+X_WE_suck, idx_suck = calc_suction_ee_pose(X_WB_list)
 
-q_traj_0_to_above, q_traj_above_to_0 = calc_joint_trajectory(
-    X_WE_start=X_WE_bin0, X_WE_final=X_WE_suck, duration=3,
+
+env_sim.viz.reset_recording()
+env_sim.viz.start_recording()
+
+# 0 to suction
+q_traj_0_to_suction, q_traj_suction_to_0 = calc_joint_trajectory(
+    X_WE_start=X_WE_bin0, X_WE_final=X_WE_suck, duration=durations[1],
     frame_E=env_sim.frame_E, plant=env_sim.plant_iiwa_c,
     q_initial_guess=q_iiwa_bin0)
 
+# hold
+q_suction = q_traj_0_to_suction.value(q_traj_0_to_suction.end_time()).ravel()
+q_traj_suction = PiecewisePolynomial.ZeroOrderHold(
+    [0, durations[2]], np.vstack([q_suction, q_suction]).T)
+
 # update time in trajectory sources.
-q_traj = concatenate_traj_list([get_q_traj_10(), q_traj_0_to_above])
+q_traj = concatenate_traj_list([
+    get_q_traj_10(), q_traj_0_to_suction, q_traj_suction, q_traj_suction_to_0])
 t_current = env_sim.context.get_time()
 env_sim.robot_traj_source.set_t_start(t_current)
 env_sim.robot_traj_source.q_traj = q_traj
 
+env_sim.suction_traj_source.set_t_start(t_current)
+env_sim.suc_sys.idx_box_to_suck = idx_suck
+
 # simulate forward.
 env_sim.sim.AdvanceTo(t_current + q_traj.end_time())
 
-
+env_sim.viz.publish_recording()
