@@ -45,28 +45,42 @@ q_suction = q_traj_0_to_suction.value(q_traj_0_to_suction.end_time()).ravel()
 q_traj_suction = PiecewisePolynomial.ZeroOrderHold(
     [0, durations[2]], np.vstack([q_suction, q_suction]).T)
 
-# 1 to drop
-R_WE_drop = RollPitchYaw(np.pi, 0, np.pi).ToRotationMatrix()
+# drop ee pose.
 d = 0.10
+R_WE_drop = RollPitchYaw(np.pi, 0, np.pi).ToRotationMatrix()
 p_WB_offset = np.array([0, d / 2, 0.015 + 0.02 + k_suction_offset_z])
-
 X_WE_drop = RigidTransform(
     R_WE_drop,
     X_WBin1.translation() + p_WB_offset)
-q_traj_1_to_drop, q_traj_drop_to_1 = calc_joint_trajectory(
-    X_WE_start=X_WE_bin1, X_WE_final=X_WE_drop, duration=durations[5],
+
+# pre-drop ee pose, which needs to be right above where the box is dropped.
+X_WE_pre_drop = RigidTransform(X_WE_bin1)
+p_WB_pre_drop = np.array(X_WE_pre_drop.translation())
+p_WB_pre_drop[1] = d / 2  # set y.
+X_WE_pre_drop.set_translation(p_WB_pre_drop)
+
+# 0 to pre-drop.
+q_traj_0_to_pre_drop, q_traj_pre_drop_to_0 = calc_joint_trajectory(
+    X_WE_start=X_WE_bin0, X_WE_final=X_WE_pre_drop, duration=durations[4],
     frame_E=env_sim.frame_E, plant=env_sim.plant_iiwa_c,
-    q_initial_guess=q_iiwa_bin1)
+    q_initial_guess=q_iiwa_bin0)
+
+# pre-drop to drop
+q_traj_pre_drop_to_drop, q_traj_drop_to_pre_drop = calc_joint_trajectory(
+    X_WE_start=X_WE_pre_drop, X_WE_final=X_WE_drop, duration=durations[5],
+    frame_E=env_sim.frame_E, plant=env_sim.plant_iiwa_c,
+    q_initial_guess=q_traj_0_to_pre_drop.value(
+        q_traj_0_to_pre_drop.end_time()).squeeze())
 
 # hold at drop
-q_drop = q_traj_drop_to_1.value(0).ravel()
+q_drop = q_traj_drop_to_pre_drop.value(0).ravel()
 q_traj_drop = PiecewisePolynomial.ZeroOrderHold(
     [0, durations[6]], np.vstack([q_drop, q_drop]).T)
 
 # update time in trajectory sources.
 q_traj = concatenate_traj_list([
     get_q_traj_10(), q_traj_0_to_suction, q_traj_suction, q_traj_suction_to_0,
-    q_traj_01, q_traj_1_to_drop, q_traj_drop, q_traj_drop_to_1])
+    q_traj_0_to_pre_drop, q_traj_pre_drop_to_drop, q_traj_drop, q_traj_drop_to_pre_drop])
 t_current = env_sim.context.get_time()
 env_sim.robot_traj_source.set_t_start(t_current)
 env_sim.robot_traj_source.q_traj = q_traj
