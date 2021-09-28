@@ -1,7 +1,7 @@
 from object_pickup_suction import *
 
 
-# %%
+#%%
 # clean up visualization.
 v = meshcat.Visualizer(zmq_url=zmq_url)
 v.delete()

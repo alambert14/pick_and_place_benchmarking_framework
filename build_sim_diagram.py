@@ -3,7 +3,7 @@ import os.path
 
 import numpy as np
 from pydrake.all import (
-    PiecewisePolynomial, MultibodyPlant, Context, RandomGenerator,
+    PiecewisePolynomial, MultibodyPlant, Context, RandomGenerator, Body,
     InverseDynamicsController)
 
 from robotics_utilities.iiwa_controller.utils import (
@@ -113,12 +113,35 @@ def set_object_drop_pose(context_env: Context,
 
 def set_object_squeeze_pose(context_env: Context,
                             plant: MultibodyPlant,
+                            soft_bodies_list: List[Body],
+                            rigid_body: Body,
                             rng):
     generator = RandomGenerator(rng.integers(1000))  # this is for c++
     plant_context = plant.GetMyContextFromRoot(context_env)
     bin0 = plant.GetModelInstanceByName("bin0")
     bin1 = plant.GetModelInstanceByName("bin1")
-    
+    bin0_body = plant.GetBodyByName("bin_base", bin0)
+    bin1_body = plant.GetBodyByName("bin_base", bin1)
+    X_B0 = plant.EvalBodyPoseInWorld(plant_context, bin0_body)
+    X_B1 = plant.EvalBodyPoseInWorld(plant_context, bin1_body)
+
+    p_WB0 = X_B1.translation()
+    d = 0.105
+
+    # set soft box positions.
+    y_positions = [-0.2 + d / 2, -0.2 + d / 2 * 3, 0.2 - d / 2]
+    for i, body in enumerate(soft_bodies_list):
+        X_WB = RigidTransform()
+        X_WB.set_translation(
+            [p_WB0[0], y_positions[i] + p_WB0[1], p_WB0[2] + 0.05])
+        plant.SetFreeBodyPose(plant_context, body, X_WB)
+
+    # set rigid box position.
+    X_WB = RigidTransform()
+    X_WB.set_translation(
+        X_B0.translation() + np.array([0, 0, 0.05]))
+    plant.SetFreeBodyPose(plant_context, rigid_body, X_WB)
+
 
 
 

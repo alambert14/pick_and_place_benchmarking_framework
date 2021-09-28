@@ -8,9 +8,9 @@ import trimesh
 stl_folder = "models"
 
 # inputs to function.
-name = "blue_berry_box_small"
+name = "blue_berry_box_small_soft"
 x = 0.18
-y = 0.105
+y = 0.10
 z = 0.045
 mass = 0.25  # kg
 rgb = np.array([70, 65, 150]) / 255

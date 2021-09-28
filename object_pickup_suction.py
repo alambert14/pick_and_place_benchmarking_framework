@@ -22,8 +22,12 @@ from grasp_sampler_suction import calc_suction_ee_pose, SuctionSystem, k_suction
 from inverse_kinematics import calc_joint_trajectory
 
 # %%
-object_sdf_path = os.path.join(os.path.dirname(__file__), 'models',
-                               'blue_berry_box.sdf')
+blueberry_sdf_path = os.path.join(
+    os.path.dirname(__file__), 'models', 'blue_berry_box.sdf')
+blueberry_small_soft_sdf_path = os.path.join(
+    os.path.dirname(__file__), 'models', 'blue_berry_box_small_soft.sdf')
+blueberry_small_rigid_sdf_path = os.path.join(
+    os.path.dirname(__file__), 'models', 'blue_berry_box_small_rigid.sdf')
 
 # commonly used trajectories
 nq = 7
@@ -32,13 +36,13 @@ q_iiwa_bin1 = np.array([0, 0.1, 0, -1.2, 0, 1.6, 0])
 
 q_traj_01 = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
     [0, 3], np.vstack([q_iiwa_bin0, q_iiwa_bin1]).T,
-    np.zeros(nq), np.zeros((nq)))
+    np.zeros(nq), np.zeros(nq))
 
 
 def get_q_traj_10():
     q_traj_10 = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
         [0, 3], np.vstack([q_iiwa_bin1, q_iiwa_bin0]).T,
-        np.zeros(nq), np.zeros((nq)))
+        np.zeros(nq), np.zeros(nq))
 
     return q_traj_10
 
@@ -51,9 +55,29 @@ def add_blueberry_boxes(n_objects: int, plant: MultibodyPlant,
                         parser: Parser):
     object_bodies = []
     for i in range(n_objects):
-        model = parser.AddModelFromFile(object_sdf_path, f"box{i}")
+        model = parser.AddModelFromFile(blueberry_sdf_path, f"box{i}")
         object_bodies.append(plant.GetBodyByName('base_link', model))
     return object_bodies
+
+
+def add_blueberry_boxes_squeeze(plant: MultibodyPlant, parser: Parser):
+    """
+    Add 3 hydroelastic soft boxes and 1 rigid box.
+    """
+    soft_boxes = []
+
+    # Add soft boxes.
+    for i in range(3):
+        model = parser.AddModelFromFile(blueberry_small_soft_sdf_path,
+                                        f"box{i}")
+        soft_boxes.append(plant.GetBodyByName('base_link', model))
+
+    # Add rigid box.
+    model = parser.AddModelFromFile(blueberry_small_rigid_sdf_path,
+                                    "rigid_box")
+    rigid_box = plant.GetBodyByName('base_link', model)
+
+    return soft_boxes, rigid_box
 
 
 class PackingMode(Enum):
@@ -72,7 +96,14 @@ def make_environment_model(
     ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
 
     # Add objects.
-    box_bodies = add_blueberry_boxes(n_objects, plant, parser)
+    if packing_mode == PackingMode.kStack:
+        box_bodies = add_blueberry_boxes(n_objects, plant, parser)
+    elif packing_mode == PackingMode.kSqueeze:
+        soft_boxes, rigid_box = add_blueberry_boxes_squeeze(plant, parser)
+        plant.set_contact_model(ContactModel.kHydroelasticWithFallback)
+        box_bodies = [rigid_box]
+    else:
+        raise RuntimeError('unknown packing mode.')
     plant.Finalize()
 
     # Robot control.
@@ -98,7 +129,9 @@ def make_environment_model(
         viz = ConnectMeshcatVisualizer(
             builder, scene_graph, zmq_url=zmq_url, prefix="environment",
             frames_to_draw=frames_to_draw)
+
         DrakeVisualizer.AddToBuilder(builder=builder, scene_graph=scene_graph)
+        ConnectContactResultsToDrakeVisualizer(builder, plant)
         if draw_contact:
             viz_c = MeshcatContactVisualizer(viz, plant=plant)
             builder.AddSystem(viz_c)
@@ -141,7 +174,12 @@ def make_environment_model(
                 R_WB=RollPitchYaw(0, 0, np.pi / 2),
                 x_lb=-0.15, x_ub=0.05, y_lb=-0.2, y_ub=0.2)
         elif packing_mode == PackingMode.kSqueeze:
-            pass
+            set_object_squeeze_pose(
+                context_env=context,
+                plant=plant,
+                soft_bodies_list=soft_boxes,
+                rigid_body=rigid_box,
+                rng=rng)
 
         simulator = Simulator(diagram, context)
         # viz.start_recording()

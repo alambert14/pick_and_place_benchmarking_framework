@@ -2,7 +2,7 @@
   <model name="blue_berry_box_small">
     <link name="base_link">
       <inertial>
-        <mass>0.25</mass>
+        <mass>0.05</mass>
         <inertia>
           <ixx>2.719e-04</ixx>
           <ixy>0.000e+00</ixy>
@@ -15,7 +15,7 @@
       <visual name="blue_berry_box_small_visual">
         <geometry>
           <box>
-            <size>0.18 0.105 0.045</size>
+            <size>0.18 0.10 0.045</size>
           </box>
         </geometry>
         <material>
@@ -32,10 +32,10 @@
           <drake:mu_dynamic>0.5</drake:mu_dynamic>
           <drake:mu_static>0.5</drake:mu_static>
           <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
-          <drake:elastic_modulus>0.1e6</drake:elastic_modulus>
+          <drake:elastic_modulus>1e6</drake:elastic_modulus>
           <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
           <drake:rigid_hydroelastic/>
-        </drake:proximity_properties >
+        </drake:proximity_properties>
       </collision>
     </link>
   </model>
