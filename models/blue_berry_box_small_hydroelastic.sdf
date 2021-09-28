@@ -1,0 +1,42 @@
+<sdf version="1.7">
+  <model name="blue_berry_box_small">
+    <link name="base_link">
+      <inertial>
+        <mass>0.25</mass>
+        <inertia>
+          <ixx>2.719e-04</ixx>
+          <ixy>0.000e+00</ixy>
+          <ixz>0.000e+00</ixz>
+          <iyy>7.172e-04</iyy>
+          <iyz>0.000e+00</iyz>
+          <izz>9.047e-04</izz>
+        </inertia>
+      </inertial>
+      <visual name="blue_berry_box_small_visual">
+        <geometry>
+          <box>
+            <size>0.18 0.105 0.045</size>
+          </box>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name="body">
+        <geometry>
+          <box>
+            <size>0.178 0.103 0.043</size>
+          </box>
+        </geometry>
+        <drake:proximity_properties>
+          <drake:mu_dynamic>0.5</drake:mu_dynamic>
+          <drake:mu_static>0.5</drake:mu_static>
+          <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
+          <drake:elastic_modulus>0.1e6</drake:elastic_modulus>
+          <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
+          <drake:rigid_hydroelastic/>
+        </drake:proximity_properties >
+      </collision>
+    </link>
+  </model>
+</sdf>

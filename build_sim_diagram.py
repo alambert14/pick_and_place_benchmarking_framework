@@ -79,7 +79,7 @@ def add_controlled_iiwa_and_trj_source(
     return plant_iiwa_controller, model_iiwa
 
 
-def set_object_drop_pose(context_environment: Context,
+def set_object_drop_pose(context_env: Context,
                          plant: MultibodyPlant,
                          bin_name: str,
                          object_bodies: List,
@@ -88,7 +88,7 @@ def set_object_drop_pose(context_environment: Context,
                          R_WB=RotationMatrix(),
                          x_lb=-0.15, x_ub=0.15, y_lb=-0.2, y_ub=0.2):
     generator = RandomGenerator(rng.integers(1000))  # this is for c++
-    plant_context = plant.GetMyContextFromRoot(context_environment)
+    plant_context = plant.GetMyContextFromRoot(context_env)
     bin_instance = plant.GetModelInstanceByName(bin_name)
     bin_body = plant.GetBodyByName("bin_base", bin_instance)
     X_B = plant.EvalBodyPoseInWorld(plant_context, bin_body)
@@ -109,5 +109,17 @@ def set_object_drop_pose(context_environment: Context,
                                   object_body,
                                   X_B.multiply(tf))
         z += 0.08
+
+
+def set_object_squeeze_pose(context_env: Context,
+                            plant: MultibodyPlant,
+                            rng):
+    generator = RandomGenerator(rng.integers(1000))  # this is for c++
+    plant_context = plant.GetMyContextFromRoot(context_env)
+    bin0 = plant.GetModelInstanceByName("bin0")
+    bin1 = plant.GetModelInstanceByName("bin1")
+    
+
+
 
 

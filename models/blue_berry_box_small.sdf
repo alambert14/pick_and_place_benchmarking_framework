@@ -1,0 +1,98 @@
+<sdf version="1.7">
+  <model name="blue_berry_box_small">
+    <link name="base_link">
+      <inertial>
+        <mass>0.25</mass>
+        <inertia>
+          <ixx>2.719e-04</ixx>
+          <ixy>0.000e+00</ixy>
+          <ixz>0.000e+00</ixz>
+          <iyy>7.172e-04</iyy>
+          <iyz>0.000e+00</iyz>
+          <izz>9.047e-04</izz>
+        </inertia>
+      </inertial>
+      <visual name="blue_berry_box_small_visual">
+        <geometry>
+          <box>
+            <size>0.18 0.105 0.045</size>
+          </box>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name="body">
+        <geometry>
+          <box>
+            <size>0.178 0.103 0.043</size>
+          </box>
+        </geometry>
+      </collision>
+      <collision name="corner_0">
+        <pose>-0.09 -0.0525 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_1">
+        <pose>-0.09 -0.0525 0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_2">
+        <pose>-0.09 0.0525 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_3">
+        <pose>-0.09 0.0525 0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_4">
+        <pose>0.09 -0.0525 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_5">
+        <pose>0.09 -0.0525 0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_6">
+        <pose>0.09 0.0525 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_7">
+        <pose>0.09 0.0525 0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

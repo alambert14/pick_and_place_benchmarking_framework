@@ -118,7 +118,7 @@ def make_environment_model(
     simulator = None
     if n_objects > 0:
         set_object_drop_pose(
-            context_environment=context,
+            context_env=context,
             plant=plant,
             bin_name=bin_name,
             object_bodies=object_bodies,
