@@ -19,7 +19,7 @@ durations:
 # 6: drop
 # 7: drop to 1
 '''
-durations = np.array([3, 2, 2, 2, 3, 2, 2, 2])
+durations = np.array([3, 2, 2, 2, 3, 4, 2, 4])
 
 t_knots = np.cumsum(np.hstack([[0], durations]))
 suction_setpoints = np.array([[0, 0, 1, 1, 1, 1, 0, 0, 0]]) * 1.0
@@ -47,8 +47,9 @@ q_traj_suction = PiecewisePolynomial.ZeroOrderHold(
 
 # drop ee pose.
 d = 0.10
+y_drop = d / 2 + 0.005
 R_WE_drop = RollPitchYaw(np.pi, 0, np.pi).ToRotationMatrix()
-p_WB_offset = np.array([0, d / 2, 0.015 + 0.02 + k_suction_offset_z])
+p_WB_offset = np.array([0, y_drop, 0.015 + 0.02 + k_suction_offset_z])
 X_WE_drop = RigidTransform(
     R_WE_drop,
     X_WBin1.translation() + p_WB_offset)
@@ -56,7 +57,7 @@ X_WE_drop = RigidTransform(
 # pre-drop ee pose, which needs to be right above where the box is dropped.
 X_WE_pre_drop = RigidTransform(X_WE_bin1)
 p_WB_pre_drop = np.array(X_WE_pre_drop.translation())
-p_WB_pre_drop[1] = d / 2  # set y.
+p_WB_pre_drop[1] = y_drop  # set y.
 X_WE_pre_drop.set_translation(p_WB_pre_drop)
 
 # 0 to pre-drop.

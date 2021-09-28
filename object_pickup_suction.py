@@ -73,8 +73,7 @@ def add_blueberry_boxes_squeeze(plant: MultibodyPlant, parser: Parser):
         soft_boxes.append(plant.GetBodyByName('base_link', model))
 
     # Add rigid box.
-    model = parser.AddModelFromFile(blueberry_small_rigid_sdf_path,
-                                    "rigid_box")
+    model = parser.AddModelFromFile(blueberry_small_rigid_sdf_path, "rigid_box")
     rigid_box = plant.GetBodyByName('base_link', model)
 
     return soft_boxes, rigid_box
