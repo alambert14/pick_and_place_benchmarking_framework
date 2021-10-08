@@ -5,6 +5,7 @@ import numpy as np
 from pydrake.all import (
     PiecewisePolynomial, MultibodyPlant, Context, RandomGenerator, Body,
     InverseDynamicsController)
+from pydrake.math import RollPitchYaw
 
 from robotics_utilities.iiwa_controller.utils import (
     create_iiwa_controller_plant)
@@ -143,6 +144,32 @@ def set_object_squeeze_pose(context_env: Context,
     plant.SetFreeBodyPose(plant_context, rigid_body, X_WB)
 
 
+def set_object_transfer_pose(context_env: Context,
+                             plant: MultibodyPlant,
+                             bodies_list: List[Body],
+                             rng):
+    generator = RandomGenerator(rng.integers(1000))  # this is for c++
+    plant_context = plant.GetMyContextFromRoot(context_env)
+    bin0 = plant.GetModelInstanceByName("bin0")
+    bin0_body = plant.GetBodyByName("bin_base", bin0)
+    X_B0 = plant.EvalBodyPoseInWorld(plant_context, bin0_body)
 
+    p_WB0 = X_B0.translation()
 
-
+    # set soft box positions.
+    d = 0.1
+    x_positions = [-0.2 + d / 2 + d * i for i in range(4)]
+    n_boxes = len(bodies_list)
+    assert n_boxes % 4 == 0
+    n_layers = n_boxes // 4
+    z = p_WB0[2] + 0.05
+    for i in range(n_layers):
+        for j in range(4):
+            i_box = i * 4 + j
+            body = bodies_list[i_box]
+            X_WB = RigidTransform()
+            X_WB.set_rotation(
+                RollPitchYaw(0, 0, -np.pi/2).ToRotationMatrix())
+            X_WB.set_translation([x_positions[j] + p_WB0[0], p_WB0[1], z])
+            plant.SetFreeBodyPose(plant_context, body, X_WB)
+        z += 0.045  # height of the blueberry boxes.

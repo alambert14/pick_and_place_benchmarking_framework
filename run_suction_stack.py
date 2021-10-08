@@ -1,5 +1,5 @@
 from object_pickup_suction import *
-
+from inverse_kinematics import calc_joint_trajectory
 
 #%%
 # clean up visualization.

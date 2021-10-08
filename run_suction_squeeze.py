@@ -1,5 +1,5 @@
 from object_pickup_suction import *
-
+from inverse_kinematics import calc_joint_trajectory
 
 #%%
 v = meshcat.Visualizer(zmq_url=zmq_url)
@@ -85,8 +85,8 @@ q_traj = concatenate_traj_list([
 t_current = env_sim.context.get_time()
 env_sim.robot_traj_source.set_t_start(t_current)
 env_sim.robot_traj_source.q_traj = q_traj
-
 env_sim.suction_traj_source.set_t_start(t_current)
+env_sim.suc_sys.idx_box_to_suck = 0
 
 # simulate forward.
 env_sim.viz.reset_recording()

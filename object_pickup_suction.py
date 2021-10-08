@@ -17,9 +17,10 @@ from grasp_sampler_vision import zmq_url
 from utils import (SimpleTrajectorySource, concatenate_traj_list,
                    add_package_paths_local, render_system_with_graphviz)
 from build_sim_diagram import (add_controlled_iiwa_and_trj_source,
-                               set_object_drop_pose, set_object_squeeze_pose)
+                               set_object_drop_pose, set_object_squeeze_pose,
+                               set_object_transfer_pose)
 from grasp_sampler_suction import calc_suction_ee_pose, SuctionSystem, k_suction_offset_z
-from inverse_kinematics import calc_joint_trajectory
+
 
 # %%
 blueberry_sdf_path = os.path.join(
@@ -28,6 +29,10 @@ blueberry_small_soft_sdf_path = os.path.join(
     os.path.dirname(__file__), 'models', 'blue_berry_box_small_soft.sdf')
 blueberry_small_rigid_sdf_path = os.path.join(
     os.path.dirname(__file__), 'models', 'blue_berry_box_small_rigid.sdf')
+two_bins_directive_file = os.path.join(
+    os.getcwd(), 'models', 'iiwa_suction_and_two_bins.yml')
+two_ocado_bins_directive_file = os.path.join(
+    os.getcwd(), 'models', 'iiwa_suction_and_two_ocado_bins.yml')
 
 # commonly used trajectories
 nq = 7
@@ -52,10 +57,10 @@ q_traj_1_hold = PiecewisePolynomial.ZeroOrderHold(
 
 
 def add_blueberry_boxes(n_objects: int, plant: MultibodyPlant,
-                        parser: Parser):
+                        parser: Parser, box_sdf: str):
     object_bodies = []
     for i in range(n_objects):
-        model = parser.AddModelFromFile(blueberry_sdf_path, f"box{i}")
+        model = parser.AddModelFromFile(box_sdf, f"box{i}")
         object_bodies.append(plant.GetBodyByName('base_link', model))
     return object_bodies
 
@@ -80,27 +85,40 @@ def add_blueberry_boxes_squeeze(plant: MultibodyPlant, parser: Parser):
 
 
 class PackingMode(Enum):
+    # Stacks randomly dropped boxes from one wide bin to the Ocado bin.
     kStack = 0
+    # Picks up one box from the wide bin and squeeze it into the Ocado bin that
+    # already has three other boxes.
     kSqueeze = 1
+    # Transfers densely-packed boxes between Ocado bins.
+    kTransfer = 2
 
 
 def make_environment_model(
-        directive, rng, draw: bool, n_objects: int, draw_contact: bool,
+        rng, draw: bool, n_objects: int, draw_contact: bool,
         packing_mode: PackingMode):
     builder = DiagramBuilder()
     plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=1e-3)
     parser = Parser(plant)
     AddPackagePaths(parser)  # Russ's manipulation repo.
     add_package_paths_local(parser)  # local.
-    ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
 
     # Add objects.
     if packing_mode == PackingMode.kStack:
-        box_bodies = add_blueberry_boxes(n_objects, plant, parser)
+        ProcessModelDirectives(
+            LoadModelDirectives(two_bins_directive_file), plant, parser)
+        box_bodies = add_blueberry_boxes(n_objects, plant, parser, blueberry_sdf_path)
     elif packing_mode == PackingMode.kSqueeze:
+        ProcessModelDirectives(
+            LoadModelDirectives(two_bins_directive_file), plant, parser)
         soft_boxes, rigid_box = add_blueberry_boxes_squeeze(plant, parser)
-        plant.set_contact_model(ContactModel.kHydroelasticWithFallback)
+        plant.set_contact_model(ContactModel.kPointContactOnly)
         box_bodies = [rigid_box]
+    elif packing_mode == PackingMode.kTransfer:
+        ProcessModelDirectives(
+            LoadModelDirectives(two_ocado_bins_directive_file), plant, parser)
+        box_bodies = add_blueberry_boxes(
+            n_objects, plant, parser, blueberry_small_soft_sdf_path)
     else:
         raise RuntimeError('unknown packing mode.')
     plant.Finalize()
@@ -179,6 +197,12 @@ def make_environment_model(
                 soft_bodies_list=soft_boxes,
                 rigid_body=rigid_box,
                 rng=rng)
+        elif packing_mode == PackingMode.kTransfer:
+            set_object_transfer_pose(
+                context_env=context,
+                plant=plant,
+                bodies_list=box_bodies,
+                rng=rng)
 
         simulator = Simulator(diagram, context)
         # viz.start_recording()
@@ -196,13 +220,11 @@ def make_environment_model(
 
 class EnvSim:
     def __init__(self, n_objects: int, packing_mode: PackingMode):
-        directive_file = os.path.join(
-            os.getcwd(), 'models', 'iiwa_suction_and_two_bins.yml')
         rng = np.random.default_rng(seed=1215234)
 
         (self.env, self.context, self.plant_iiwa_c, self.sim,
          self.box_bodies) = make_environment_model(
-            directive=directive_file, rng=rng, draw=True, n_objects=n_objects,
+            rng=rng, draw=True, n_objects=n_objects,
             draw_contact=False, packing_mode=packing_mode)
 
         self.iiwa_model = self.plant_iiwa_c.GetModelInstanceByName('iiwa')
@@ -222,11 +244,17 @@ class EnvSim:
         return self.plant_iiwa_c.CalcRelativeTransform(
             context, self.plant_iiwa_c.world_frame(), self.frame_E)
 
+    def get_box_pose(self, i_box: int):
+        """
+        i_box: index into self.box_bodies
+        """
+        return self.plant_env.EvalBodyPoseInWorld(
+            self.context_plant_env, self.box_bodies[i_box])
+
     def get_box_poses(self):
         X_WB_list = []
-        for body in self.box_bodies:
-            X_WB_list.append(
-                self.plant_env.EvalBodyPoseInWorld(self.context_plant_env, body))
+        for i in range(len(self.box_bodies)):
+            X_WB_list.append(self.get_box_pose(i))
 
         return X_WB_list
 

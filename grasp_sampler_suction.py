@@ -31,7 +31,7 @@ class SuctionSystem(LeafSystem):
         self.box_body_indices = box_body_indices
         self.l7_body_index = l7_body_index
         # index into self.box_body_indices.
-        self.idx_box_to_suck = 0
+        self.idx_box_to_suck = None
 
     def calc_suction_force(self, context, suction_force_abstract_value):
         body_poses = self.body_poses_input_port.Eval(context)
