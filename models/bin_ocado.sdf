@@ -37,8 +37,8 @@
           </box>
         </geometry>
         <drake:proximity_properties>
-          <drake:mu_dynamic>0.5</drake:mu_dynamic>
-          <drake:mu_static>0.5</drake:mu_static>
+          <drake:mu_dynamic>0.</drake:mu_dynamic>
+          <drake:mu_static>0.</drake:mu_static>
           <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
           <drake:elastic_modulus>1e8</drake:elastic_modulus>
           <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
@@ -61,8 +61,8 @@
           </box>
         </geometry>
         <drake:proximity_properties>
-          <drake:mu_dynamic>0.5</drake:mu_dynamic>
-          <drake:mu_static>0.5</drake:mu_static>
+          <drake:mu_dynamic>0.</drake:mu_dynamic>
+          <drake:mu_static>0.</drake:mu_static>
           <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
           <drake:elastic_modulus>1e8</drake:elastic_modulus>
           <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
@@ -85,8 +85,8 @@
           </box>
         </geometry>
         <drake:proximity_properties>
-          <drake:mu_dynamic>0.5</drake:mu_dynamic>
-          <drake:mu_static>0.5</drake:mu_static>
+          <drake:mu_dynamic>0.</drake:mu_dynamic>
+          <drake:mu_static>0.</drake:mu_static>
           <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
           <drake:elastic_modulus>1e8</drake:elastic_modulus>
           <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
@@ -109,8 +109,8 @@
           </box>
         </geometry>
         <drake:proximity_properties>
-          <drake:mu_dynamic>0.5</drake:mu_dynamic>
-          <drake:mu_static>0.5</drake:mu_static>
+          <drake:mu_dynamic>0.</drake:mu_dynamic>
+          <drake:mu_static>0.</drake:mu_static>
           <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
           <drake:elastic_modulus>1e8</drake:elastic_modulus>
           <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>

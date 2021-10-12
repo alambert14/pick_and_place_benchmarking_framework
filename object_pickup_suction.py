@@ -1,5 +1,6 @@
 import os
 from enum import Enum
+from typing import List
 
 import numpy as np
 import meshcat
@@ -27,6 +28,8 @@ blueberry_sdf_path = os.path.join(
     os.path.dirname(__file__), 'models', 'blue_berry_box.sdf')
 blueberry_small_soft_sdf_path = os.path.join(
     os.path.dirname(__file__), 'models', 'blue_berry_box_small_soft.sdf')
+blueberry_small_4_bottom_spheres_sdf_path = os.path.join(
+    os.path.dirname(__file__), 'models', 'blue_berry_box_small_4_bottom_spheres.sdf')
 blueberry_small_rigid_sdf_path = os.path.join(
     os.path.dirname(__file__), 'models', 'blue_berry_box_small_rigid.sdf')
 two_bins_directive_file = os.path.join(
@@ -62,6 +65,27 @@ def add_blueberry_boxes(n_objects: int, plant: MultibodyPlant,
     for i in range(n_objects):
         model = parser.AddModelFromFile(box_sdf, f"box{i}")
         object_bodies.append(plant.GetBodyByName('base_link', model))
+    return object_bodies
+
+
+def add_blueberry_boxes_transfer(n_objects: int, plant: MultibodyPlant, parser: Parser):
+    """
+    The 0, 4, 8, ... boxes do not have corner spheres. They are the boxes to be
+        squeezed in.
+    """
+    object_bodies = []
+    assert n_objects % 4 == 0
+    n_layers = n_objects // 4
+    for i in range(n_layers):
+        model = parser.AddModelFromFile(blueberry_small_soft_sdf_path, f"box{i * 4}")
+        object_bodies.append(plant.GetBodyByName('base_link', model))
+
+        for j in range(3):
+            i_box = i * 4 + j + 1
+            model = parser.AddModelFromFile(
+                blueberry_small_4_bottom_spheres_sdf_path, f"box{i_box}")
+            object_bodies.append(plant.GetBodyByName('base_link', model))
+
     return object_bodies
 
 
@@ -117,8 +141,7 @@ def make_environment_model(
     elif packing_mode == PackingMode.kTransfer:
         ProcessModelDirectives(
             LoadModelDirectives(two_ocado_bins_directive_file), plant, parser)
-        box_bodies = add_blueberry_boxes(
-            n_objects, plant, parser, blueberry_small_soft_sdf_path)
+        box_bodies = add_blueberry_boxes_transfer(n_objects, plant, parser)
     else:
         raise RuntimeError('unknown packing mode.')
     plant.Finalize()
@@ -258,9 +281,30 @@ class EnvSim:
 
         return X_WB_list
 
+    def run_robot_traj(self, q_traj: PiecewisePolynomial):
+        self.robot_traj_source.q_traj = q_traj
+        # set start time for robot traj soource and suction traj source.
+        t_current = self.context.get_time()
+        self.robot_traj_source.set_t_start(t_current)
+        self.suction_traj_source.set_t_start(t_current)
+        # simulate forward.
+        self.sim.AdvanceTo(t_current + q_traj.end_time())
+
     def get_bin_pose(self, bin_name):
         bin_instance = self.plant_env.GetModelInstanceByName(bin_name)
         bin_body = self.plant_env.GetBodyByName("bin_base", bin_instance)
         return self.plant_env.EvalBodyPoseInWorld(self.context_plant_env, bin_body)
 
+    def lock_boxes(self, idx_boxes_to_lock: List[int]):
+        """
+        locks self.box_bodies[idx_boxes_to_lock].
+        """
+        for i in idx_boxes_to_lock:
+            self.box_bodies[i].Lock(self.context_plant_env)
 
+    def unlock_boxes(self, idx_boxes_to_unlock: List[int]):
+        """
+        unlocks self.box_bodies[idx_boxes_to_lock].
+        """
+        for i in idx_boxes_to_unlock:
+            self.box_bodies[i].Unlock(self.context_plant_env)

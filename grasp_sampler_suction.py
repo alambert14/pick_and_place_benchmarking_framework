@@ -34,6 +34,10 @@ class SuctionSystem(LeafSystem):
         self.idx_box_to_suck = None
 
     def calc_suction_force(self, context, suction_force_abstract_value):
+        if self.idx_box_to_suck is None:
+            suction_force_abstract_value.set_value([])
+            return
+
         body_poses = self.body_poses_input_port.Eval(context)
         suction_strength = self.suction_strength_input_port.Eval(context)[0]
         if suction_strength < 1e-3:

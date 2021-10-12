@@ -15,7 +15,7 @@
       <visual name="blue_berry_box_small_soft_visual">
         <geometry>
           <box>
-            <size>0.18 0.105 0.045</size>
+            <size>0.18 0.10 0.045</size>
           </box>
         </geometry>
         <material>

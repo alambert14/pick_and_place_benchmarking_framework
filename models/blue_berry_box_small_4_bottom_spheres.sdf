@@ -1,0 +1,107 @@
+<sdf version="1.7">
+  <model name="blue_berry_box_small_soft">
+    <link name="base_link">
+      <inertial>
+        <mass>0.25</mass>
+        <inertia>
+          <ixx>2.505e-04</ixx>
+          <ixy>0.000e+00</ixy>
+          <ixz>0.000e+00</ixz>
+          <iyy>7.172e-04</iyy>
+          <iyz>0.000e+00</iyz>
+          <izz>8.833e-04</izz>
+        </inertia>
+      </inertial>
+      <visual name="blue_berry_box_small_soft_visual">
+        <geometry>
+          <box>
+            <size>0.18 0.10 0.045</size>
+          </box>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name="body">
+        <geometry>
+          <box>
+            <size>0.178 0.098 0.043</size>
+          </box>
+        </geometry>
+        <drake:proximity_properties>
+          <drake:mu_dynamic>2.0</drake:mu_dynamic>
+          <drake:mu_static>2.0</drake:mu_static>
+          <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
+          <drake:elastic_modulus>1e5</drake:elastic_modulus>
+          <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
+          <drake:soft_hydroelastic/>
+        </drake:proximity_properties>
+      </collision>
+
+      <collision name="corner_0">
+        <pose>-0.09 -0.05 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+        <drake:proximity_properties>
+          <drake:mu_dynamic>0.1</drake:mu_dynamic>
+          <drake:mu_static>0.1</drake:mu_static>
+          <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
+          <drake:elastic_modulus>1e5</drake:elastic_modulus>
+          <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
+          <drake:soft_hydroelastic/>
+        </drake:proximity_properties>
+      </collision>
+      <collision name="corner_2">
+        <pose>-0.09 0.05 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+        <drake:proximity_properties>
+          <drake:mu_dynamic>0.1</drake:mu_dynamic>
+          <drake:mu_static>0.1</drake:mu_static>
+          <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
+          <drake:elastic_modulus>1e5</drake:elastic_modulus>
+          <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
+          <drake:soft_hydroelastic/>
+        </drake:proximity_properties>
+      </collision>
+      <collision name="corner_4">
+        <pose>0.09 -0.05 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+        <drake:proximity_properties>
+          <drake:mu_dynamic>0.1</drake:mu_dynamic>
+          <drake:mu_static>0.1</drake:mu_static>
+          <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
+          <drake:elastic_modulus>1e5</drake:elastic_modulus>
+          <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
+          <drake:soft_hydroelastic/>
+        </drake:proximity_properties>
+      </collision>
+      <collision name="corner_6">
+        <pose>0.09 0.05 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+        <drake:proximity_properties>
+          <drake:mu_dynamic>0.1</drake:mu_dynamic>
+          <drake:mu_static>0.1</drake:mu_static>
+          <drake:mesh_resolution_hint>0.02</drake:mesh_resolution_hint>
+          <drake:elastic_modulus>1e5</drake:elastic_modulus>
+          <drake:hunt_crossley_dissipation>5.0</drake:hunt_crossley_dissipation>
+          <drake:soft_hydroelastic/>
+        </drake:proximity_properties>
+      </collision>
+    </link>
+  </model>
+</sdf>
