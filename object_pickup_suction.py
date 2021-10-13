@@ -281,14 +281,18 @@ class EnvSim:
 
         return X_WB_list
 
-    def run_robot_traj(self, q_traj: PiecewisePolynomial):
-        self.robot_traj_source.q_traj = q_traj
+    def run_robot_traj(self, q_traj_robot: PiecewisePolynomial,
+                       q_traj_suction: PiecewisePolynomial):
+        assert abs(q_traj_robot.end_time() - q_traj_suction.end_time()) < 1e-3
+        self.robot_traj_source.q_traj = q_traj_robot
+        self.suction_traj_source.q_traj = q_traj_suction
+
         # set start time for robot traj soource and suction traj source.
         t_current = self.context.get_time()
         self.robot_traj_source.set_t_start(t_current)
         self.suction_traj_source.set_t_start(t_current)
         # simulate forward.
-        self.sim.AdvanceTo(t_current + q_traj.end_time())
+        self.sim.AdvanceTo(t_current + q_traj_robot.end_time())
 
     def get_bin_pose(self, bin_name):
         bin_instance = self.plant_env.GetModelInstanceByName(bin_name)
