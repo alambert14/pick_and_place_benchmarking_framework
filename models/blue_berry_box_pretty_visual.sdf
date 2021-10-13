@@ -1,0 +1,1198 @@
+<sdf version="1.7">
+  <model name="blue_berry_box_pretty_visual">
+    <link name="base_link">
+      <inertial>
+        <mass>0.25</mass>
+        <inertia>
+          <ixx>2.505e-04</ixx>
+          <ixy>0.000e+00</ixy>
+          <ixz>0.000e+00</ixz>
+          <iyy>7.172e-04</iyy>
+          <iyz>0.000e+00</iyz>
+          <izz>8.833e-04</izz>
+        </inertia>
+      </inertial>
+      <visual name="blue_berry_box_pretty_visual_visual_box">
+        <geometry>
+          <box>
+            <size>0.18 0.1 0.045</size>
+          </box>
+        </geometry>
+        <material>
+          <diffuse>1 1 1 0.5</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_0">
+        <pose>-0.07430941844855744 -0.02220805133053815 0.007605354956542468 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_1">
+        <pose>-0.010653247734015048 -0.01248469615182175 0.011511769082825425 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_2">
+        <pose>0.017580059877788212 -0.008492974465506481 -0.004392680172807438 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_3">
+        <pose>-0.03567193680616104 -0.035642193882738774 8.770727036002887e-05 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_4">
+        <pose>-0.035261084901901336 0.032127740043840794 -0.015054265896921588 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_5">
+        <pose>0.06577807256967984 0.035331599129718755 -0.005038149878498498 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_6">
+        <pose>-0.0032058133105082043 0.030891159279397215 -0.011044628561388645 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_7">
+        <pose>-0.0062295520308973396 0.03359610233911847 -0.008332372904054093 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_8">
+        <pose>0.017154872599262794 -0.031200393454058364 -0.005961092467394744 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_9">
+        <pose>-0.06830007897591524 -0.021237102051463484 0.002454422257315944 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_10">
+        <pose>-0.002943727383228678 0.01754849767698608 -0.00801187686136241 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_11">
+        <pose>-0.03318796746100854 -0.007263508184341162 -0.006242321270512743 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_12">
+        <pose>-0.007702137197730455 0.015945597468279817 -0.011449758405233327 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_13">
+        <pose>0.06255055087569998 -0.031459735568881174 -0.007772868810350005 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_14">
+        <pose>0.0776471185883804 0.0015481134314956901 -0.004604728886401234 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_15">
+        <pose>0.05949626313478422 -0.024543135567916114 -0.0041157920439034365 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_16">
+        <pose>0.00035443136602957004 -0.030869643147678195 0.006612451281425402 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_17">
+        <pose>-0.054748603497142556 -0.004947284016110831 0.012503631220972575 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_18">
+        <pose>0.060933551916554654 -0.00027376525656826883 0.011236244512459522 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_19">
+        <pose>0.07594882271148369 0.030059822415339443 0.00793514494786279 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_20">
+        <pose>0.05453813748763013 -0.024797790500372792 -0.0034131668532808405 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_21">
+        <pose>-0.07598131055630648 -0.00705259609198864 0.0025270978275175084 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_22">
+        <pose>0.010238926865785342 -0.01319278076681732 -0.0008949729615662042 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_23">
+        <pose>0.014515396366447983 0.007387775033332586 0.00023804356813362376 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_24">
+        <pose>0.04728213464054022 0.008433526938565236 -0.002210164741740163 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_25">
+        <pose>-0.07124653371825916 -0.024943125911344146 0.004950692700793149 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_26">
+        <pose>-0.03417567452455912 0.02500189983968687 -0.0019291013954617266 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_27">
+        <pose>0.006534544866611688 -0.038967403472837156 -0.006638502963409397 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_28">
+        <pose>0.022123895573799138 0.03446577979108177 -0.005336488941639551 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_29">
+        <pose>0.04902932329309374 -0.03810433335872243 -0.005135683307480715 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_30">
+        <pose>0.0605188546677516 0.012213101160558466 0.011934951121733355 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_31">
+        <pose>-0.028794012715577785 -0.015541540329592655 0.005668702694232346 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_32">
+        <pose>0.05031785434824483 0.006183280432119451 0.004059474242607778 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_33">
+        <pose>0.07388403911592308 -0.0010925911684334377 -0.004902617009221658 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_34">
+        <pose>0.07600698332272264 0.024158775778753888 0.012718406714143083 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_35">
+        <pose>0.03619212493658107 -0.016120443617562537 -0.011172838995657235 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_36">
+        <pose>-0.0006015486096225264 0.023400449216627914 -0.010672793394678949 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_37">
+        <pose>-0.01826089099157023 0.009811260075595477 -0.005278866176524495 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_38">
+        <pose>0.0012108057978841152 0.013584440966824887 -0.00736994207304772 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_39">
+        <pose>0.07022242801046451 0.015179606015708967 -0.010507125256096731 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_40">
+        <pose>-0.03615063826479615 0.0047325640426842674 0.004589359452489908 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_41">
+        <pose>0.07197640125141654 0.007674682254426114 0.005089708965982109 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_42">
+        <pose>0.0763707881147593 -0.027210230524342377 -0.01114150620720165 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_43">
+        <pose>-0.002672267823444388 -0.007548889386112187 0.01053533311089793 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_44">
+        <pose>0.03950487163105089 -0.03899954641209729 0.0060132548048387816 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_45">
+        <pose>-0.06769092222668242 -0.01350566584322592 0.01167395453224505 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_46">
+        <pose>-0.06433823157508109 -0.03468865585595129 0.004015475046962352 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_47">
+        <pose>-0.008013471426251126 -0.017170665862562457 0.009616575296064345 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_48">
+        <pose>-0.04835992249163629 0.0006451941123449545 -0.008428327510181566 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_49">
+        <pose>0.058867890456333574 -0.029976659044922006 0.0066501383930889675 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_50">
+        <pose>-0.030310372514932536 -0.03232660106282475 -0.004387197593758312 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_51">
+        <pose>-0.054413558057145234 -0.009721529172439063 -0.0042448180270335464 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_52">
+        <pose>0.028197331314653434 0.035490290283721915 -0.006693340328069243 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_53">
+        <pose>-0.042915633831621974 0.023223680577532047 -0.001705723436143735 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_54">
+        <pose>-0.06475077229717249 -0.018691110475627763 -0.011185192438396777 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_55">
+        <pose>0.0294265387297509 0.02359790084405987 -0.0035865493407679933 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_56">
+        <pose>0.06849076193416691 -0.00570294731360254 -0.002126871321804497 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_57">
+        <pose>-0.07716129613321995 0.03397048391533812 -0.0017080890514379748 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_58">
+        <pose>-0.019240307312201943 -0.0274326909921679 0.004309547943022865 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_59">
+        <pose>0.054809891351062415 -0.0175102237175475 0.005300559218856082 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_60">
+        <pose>-0.01333797530253343 0.007836870891185219 -0.015225930007212181 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_61">
+        <pose>-0.05666698980600414 0.001673773197137747 0.009286747675382533 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_62">
+        <pose>0.04765709228682867 0.03168267579520105 0.01291280321330291 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_63">
+        <pose>0.07560667397385303 0.03909638786216764 -0.014273140160634462 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_64">
+        <pose>-0.02094223187802386 -0.017151158525740704 0.0006114666960197225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_65">
+        <pose>-0.03489105436547574 0.010889501132614152 0.0013974124036197286 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_66">
+        <pose>0.06127169254676769 -0.038278691312218706 -0.0012454148604017327 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_67">
+        <pose>0.08073000392358477 -0.00516362641853102 -0.012264060038256757 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_68">
+        <pose>-0.0650107016941064 0.03906614227766968 -0.008198837051346174 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_69">
+        <pose>-0.07025416492256523 -0.023562731653669844 -0.0036711605254015414 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_70">
+        <pose>-0.001968958004177776 -0.03333519385247273 0.012396658994376735 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_71">
+        <pose>-0.05476023558487057 0.014742781804943636 0.012272529708558973 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_72">
+        <pose>-0.02163975880820214 -0.02029479530627969 -0.010921004966990382 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_73">
+        <pose>0.06179559316530865 -0.007834797954534976 0.0056983560813589455 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_74">
+        <pose>0.021152936890361004 0.004077905926322858 -0.0028445918794367184 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_75">
+        <pose>-0.047243505603619874 -0.016893814084730015 -0.012165550233674341 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_76">
+        <pose>-0.04792712767402174 0.008829367958321913 0.005559086907439621 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_77">
+        <pose>0.06962395661449435 -0.030153072824382777 -0.01349811796974889 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_78">
+        <pose>0.05384441821163906 -0.018688394712355862 -0.008691934418794383 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_79">
+        <pose>-0.0023343019642928647 -0.022613805061779027 0.01208844634581865 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_80">
+        <pose>-0.027560597036701932 0.0003483998128986643 -0.0059728523315406064 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_81">
+        <pose>-0.0619960289604031 0.029641862441370487 0.010485065147284766 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_82">
+        <pose>0.04512528400119124 0.03125222975721002 0.004816701079974575 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_83">
+        <pose>-0.07471182496589063 -0.015992286676092156 0.010568562567927608 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_84">
+        <pose>-0.02485516155288816 0.008351535005853866 0.0035907116655929036 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_85">
+        <pose>0.07179946681869491 -0.021540895462148924 -0.008890035529387278 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_86">
+        <pose>-0.015958161532759182 0.02755377892024595 0.015468365009773461 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_87">
+        <pose>0.03315161533817075 -0.026569849196511446 0.01350325228073276 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_88">
+        <pose>-0.013590243829592494 -0.010663749906977611 -0.014757728061067569 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_89">
+        <pose>0.014669770218285291 0.023639628287756703 0.0030643721773536033 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_90">
+        <pose>0.02535059897881413 -0.03309660722844288 -0.00686294294786681 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_91">
+        <pose>0.025922139053917895 -0.0029017035300102356 0.007209556837720302 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_92">
+        <pose>-0.03881759823832117 -0.0017482030335331245 -0.0015342911590960767 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_93">
+        <pose>-0.006147289509241094 0.036301550253689224 -0.014721743019543402 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_94">
+        <pose>-0.0693196217376954 0.0268558749097801 0.0006340273083797442 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_95">
+        <pose>-0.04247647044383241 0.0015589873495363005 0.0011456221133228466 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_96">
+        <pose>-0.009401235386602966 0.030050080260134296 -0.01554503481579292 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_97">
+        <pose>-0.06626990169618403 -0.01519672550894827 -0.007539307492089014 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_98">
+        <pose>0.058457369680273416 -0.03665138499470944 -0.015085856351490966 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <visual name="blue_berry_box_pretty_visual_visual_berry_99">
+        <pose>0.07322885026652355 -0.023957438248785618 -0.007248406027337163 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.007</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name="body">
+        <geometry>
+          <box>
+            <size>0.178 0.098 0.043</size>
+          </box>
+        </geometry>
+      </collision>
+      <collision name="corner_0">
+        <pose>-0.09 -0.05 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_1">
+        <pose>-0.09 -0.05 0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_2">
+        <pose>-0.09 0.05 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_3">
+        <pose>-0.09 0.05 0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_4">
+        <pose>0.09 -0.05 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_5">
+        <pose>0.09 -0.05 0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_6">
+        <pose>0.09 0.05 -0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+      <collision name="corner_7">
+        <pose>0.09 0.05 0.0225 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.001</radius>
+          </sphere>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

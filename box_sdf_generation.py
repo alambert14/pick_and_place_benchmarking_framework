@@ -8,12 +8,12 @@ import trimesh
 stl_folder = "models"
 
 # inputs to function.
-name = "blue_berry_box_small_soft"
+name = "blue_berry_box_pretty_visual"
 x = 0.18
 y = 0.10
 z = 0.045
 mass = 0.25  # kg
-rgb = np.array([70, 65, 150]) / 255
+rgb_berry = np.array([70, 65, 150]) / 255
 
 # in the function.
 root = et.Element("sdf", version="1.7")
@@ -57,13 +57,21 @@ def add_sphere_geometry(node, x_c, y_c, z_c, r):
 
 
 # visual
-node_visual = et.SubElement(node_link, "visual", name=name + "_visual")
+node_visual = et.SubElement(node_link, "visual", name=name + "_visual_box")
 add_box_geometry(node_visual, x, y, z)
 node_visual_material = et.SubElement(node_visual, "material")
 node_visual_material_diffuse = et.SubElement(node_visual_material, "diffuse")
-node_visual_material_diffuse.text = "{:.2f} {:.2f} {:.2f} 1.0".format(
-    rgb[0], rgb[1], rgb[2])
+node_visual_material_diffuse.text = "1 1 1 0.5"
 
+box_dimensions = np.array([x, y, z]) * np.array([0.9, 0.8, 0.7])
+for i in range(100):
+    xyz_berry = np.random.rand(3) * box_dimensions - box_dimensions / 2
+    node_visual = et.SubElement(node_link, "visual", name=name + f"_visual_berry_{i}")
+    add_sphere_geometry(node_visual, xyz_berry[0], xyz_berry[1], xyz_berry[2], 0.007)
+    node_visual_material = et.SubElement(node_visual, "material")
+    node_visual_material_diffuse = et.SubElement(node_visual_material, "diffuse")
+    node_visual_material_diffuse.text = "{:.2f} {:.2f} {:.2f} 1.0".format(
+        rgb_berry[0], rgb_berry[1], rgb_berry[2])
 
 #  collision
 node_collision = et.SubElement(node_link, "collision", name="body")
