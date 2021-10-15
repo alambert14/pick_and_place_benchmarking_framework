@@ -136,7 +136,7 @@ def make_environment_model(
         ProcessModelDirectives(
             LoadModelDirectives(two_bins_directive_file), plant, parser)
         soft_boxes, rigid_box = add_blueberry_boxes_squeeze(plant, parser)
-        plant.set_contact_model(ContactModel.kPointContactOnly)
+        plant.set_contact_model(ContactModel.kHydroelasticWithFallback)
         box_bodies = [rigid_box]
     elif packing_mode == PackingMode.kTransfer:
         ProcessModelDirectives(
