@@ -15,11 +15,11 @@
       <visual name="blue_berry_box_small_soft_visual">
         <geometry>
           <box>
-            <size>0.18 0.10 0.045</size>
+            <size>0.18 0.098 0.045</size>
           </box>
-        </geometry>
+        </geometry>zzz
         <material>
-          <diffuse>0.27 0.25 0.59 1.0</diffuse>
+          <diffuse>0.27 0.25 0.59 0.5</diffuse>
         </material>
       </visual>
       <collision name="body">

@@ -130,7 +130,7 @@ def set_object_squeeze_pose(context_env: Context,
     d = 0.105
 
     # set soft box positions.
-    y_positions = [-0.2 + d / 2, -0.2 + d / 2 * 3, 0.2 - d / 2]
+    y_positions = [-0.2 + 0.049, -0.2 + d / 2 * 3, 0.2 - d / 2]
     for i, body in enumerate(soft_bodies_list):
         X_WB = RigidTransform()
         X_WB.set_translation(

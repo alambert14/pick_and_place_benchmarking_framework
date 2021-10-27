@@ -6,6 +6,7 @@ v = meshcat.Visualizer(zmq_url=zmq_url)
 v.delete()
 
 env_sim = EnvSim(n_objects=3, packing_mode=PackingMode.kSqueeze)
+env_sim.sim.set_target_realtime_rate(1.0)
 X_WBin1 = env_sim.get_bin_pose("bin1")
 
 '''
