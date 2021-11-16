@@ -15,8 +15,8 @@ We would like to pick, sort, and place different produce into bins using the KUK
 ## Current TODO
 
 - [x] Add multiple produce items
-- [] Edit camera pose to try and avoid collisions?
+- [ ] Edit camera pose to try and avoid collisions?
 - [x] Add extra box(es) for sorted produce
-- [] Distinguish between what produce the robot is currently grasping- should do in grasp sampling, detect bounding boxes between produce to figure out how to grasp and also what to grasp
-- [] Change trajectory based on what the robot is grasping
-- [] Make animation go faster?
+- [ ] Distinguish between what produce the robot is currently grasping- should do in grasp sampling, detect bounding boxes between produce to figure out how to grasp and also what to grasp
+- [ ] Change trajectory based on what the robot is grasping
+- [ ] Make animation go faster?
