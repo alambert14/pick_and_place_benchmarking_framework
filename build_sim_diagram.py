@@ -32,7 +32,7 @@ def add_objects(n_objects: int, obj_names: List[str], obj_sdfs: Dict[str, str],
     lime_bag_bodies = []
     n_bags_of_lime = 0
     for i in range(n_objects):
-        i_obj = rng.integers(len(object_sdfs))
+        i_obj = i  % len(obj_names) # rng.integers(len(object_sdfs))
         obj_name = obj_names[i_obj]
         if obj_name == 'Lime':
             lime_bodies = add_bag_of_lime(n_limes=5, bag_index=n_bags_of_lime,
@@ -42,6 +42,7 @@ def add_objects(n_objects: int, obj_names: List[str], obj_sdfs: Dict[str, str],
         else:
             model = parser.AddModelFromFile(obj_sdfs[obj_name], f"object{i}")
             object_bodies.append(plant.GetBodyByName('base_link', model))
+            print(f'Adding {obj_name}')
 
     return object_bodies, lime_bag_bodies
 

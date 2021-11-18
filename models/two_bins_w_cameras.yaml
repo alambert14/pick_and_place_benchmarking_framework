@@ -1,7 +1,7 @@
 
 directives:
 - add_directives:
-    file: package://local/two_bins.yaml
+    file: package://local/three_bins.yaml
 
 - add_frame:
     name: camera0_origin
@@ -23,7 +23,7 @@ directives:
     X_PF:
         base_frame: world
         rotation: !Rpy { deg: [-150., 0, 0.0]}
-        translation: [-0.05, -.7, .5]
+        translation: [-0.05, -.8, .5]
 
 - add_model:
     name: camera1

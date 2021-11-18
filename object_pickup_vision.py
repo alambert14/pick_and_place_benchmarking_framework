@@ -7,7 +7,7 @@ from pydrake.all import (
     RandomGenerator, Simulator, InverseDynamicsController, ContactModel,
     ConnectContactResultsToDrakeVisualizer, DrakeVisualizer, Parser,
     DiagramBuilder, AddMultibodyPlantSceneGraph, ProcessModelDirectives,
-    LoadModelDirectives, ConnectMeshcatVisualizer)
+    LoadModelDirectives, ConnectMeshcatVisualizer, RollPitchYaw)
 
 import meshcat
 
@@ -24,7 +24,7 @@ from build_sim_diagram import (add_controlled_iiwa_and_trj_source, add_objects,
 #%%
 # object SDFs.
 # object_names = ['Lime', 'Cucumber', 'Mango']
-object_names = ['Cucumber']
+object_names = ['Mango', 'Cucumber', 'Lime']
 sdf_dir = os.path.join(os.path.dirname(__file__), 'cad_files')
 object_sdfs = {name: os.path.join(sdf_dir, name + '_simplified.sdf')
                for name in object_names}
@@ -150,7 +150,7 @@ v.delete()
 
 # build environment and grasp sampler.
 env, context_env, plant_iiwa_controller, sim = make_environment_model(
-    directive=directive_file, rng=rng, draw=True, n_objects=2)
+    directive=directive_file, rng=rng, draw=True, n_objects=5)
 grasp_sampler = GraspSamplerVision(env)
 
 #%% home EE poses for bin1 and bin2.
@@ -165,6 +165,7 @@ X_WE_bin0 = plant_iiwa_controller.CalcRelativeTransform(
 plant_iiwa_controller.SetPositions(context_iiwa_plant, q_iiwa_bin1)
 X_WE_bin1 = plant_iiwa_controller.CalcRelativeTransform(
     context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
+X_WE_bin1.set_rotation(RollPitchYaw(0, 0, np.pi/2))
 
 # commonly used trajectories
 nq = 7
