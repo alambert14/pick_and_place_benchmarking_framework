@@ -1,6 +1,7 @@
 from typing import List, Dict
 import os.path
 
+import cv2
 import numpy as np
 from pydrake.all import (
     PiecewisePolynomial, PidController, MultibodyPlant, RigidTransform,
@@ -165,7 +166,7 @@ X_WE_bin0 = plant_iiwa_controller.CalcRelativeTransform(
 plant_iiwa_controller.SetPositions(context_iiwa_plant, q_iiwa_bin1)
 X_WE_bin1 = plant_iiwa_controller.CalcRelativeTransform(
     context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
-X_WE_bin1.set_rotation(RollPitchYaw(0, 0, np.pi/2))
+# X_WE_bin1.set_rotation(RollPitchYaw(0, 0, np.pi/2))
 
 # commonly used trajectories
 nq = 7
@@ -221,7 +222,17 @@ schunk_traj_source.q_traj = schunk_traj
 
 viz.reset_recording()
 viz.start_recording()
+
+cam1 = env.GetSubsystemByName('camera1')
+cam1_context = cam1.GetMyMutableContextFromRoot(context_env)
 while True:
+    rgb_image = cam1.GetOutputPort('color_image').Eval(cam1_context).data
+    print(type(rgb_image))
+    print(rgb_image.shape)
+    img = rgb_image[:,:,:-1]
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    file = 'test.png'
+    cv2.imwrite(file, img)
     # Sample some grasps.
     print('Sampling new grasps...')
     X_Gs_best = grasp_sampler.sample_grasp_candidates(
@@ -263,6 +274,8 @@ while True:
     robot_traj_source.q_traj = q_traj
 
     sim.AdvanceTo(t_current + q_traj.end_time())
+
+    
 
 viz.stop_recording()
 viz.publish_recording()
