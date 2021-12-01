@@ -8,7 +8,7 @@ from pydrake.all import (
     RandomGenerator, Simulator, InverseDynamicsController, ContactModel,
     ConnectContactResultsToDrakeVisualizer, DrakeVisualizer, Parser,
     DiagramBuilder, AddMultibodyPlantSceneGraph, ProcessModelDirectives,
-    LoadModelDirectives, ConnectMeshcatVisualizer, RollPitchYaw)
+    LoadModelDirectives, ConnectMeshcatVisualizer, RollPitchYaw, PerceptionProperties, RenderLabel)
 
 import meshcat
 
@@ -33,21 +33,17 @@ object_sdfs = {name: os.path.join(sdf_dir, name + '_simplified.sdf')
 training_dir = os.path.join(os.path.dirname(__file__), 'training_data')
 
 
-def get_masks(point_cloud):
-
-
-
 def make_environment_model(
-        directive, rng=None, draw=False, n_objects=0, bin_name="bin0"):
+        directive, rng=None, draw=False, n_objects=0, bin_name="bin"):
     """
     Make one model of the environment, but the robot only gets to see the sensor
      outputs.
     """
     builder = DiagramBuilder()
     plant, scene_graph = AddMultibodyPlantSceneGraph(builder, time_step=2e-4)
-    # parser = Parser(plant)
-    # AddPackagePaths(parser)  # Russ's manipulation repo.
-    # add_package_paths_local(parser)  # local.
+    parser = Parser(plant)
+    AddPackagePaths(parser)  # Russ's manipulation repo.
+    add_package_paths_local(parser)  # local.
     ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
     inspector = scene_graph.model_inspector()
     # Add objects.
@@ -57,7 +53,7 @@ def make_environment_model(
         obj_sdfs=object_sdfs,
         plant=plant,
         parser=parser,
-        inspector=inspector,
+        #inspector=inspector,
         rng=rng)
 
     # Set contact model.
@@ -87,9 +83,9 @@ def make_environment_model(
     # Set initial conditions.
     # robot and gripper initial conditions.
     context_plant = plant.GetMyContextFromRoot(context)
-    plant.SetPositions(context_plant, model_iiwa, q_iiwa_bin1)
-    plant.SetPositions(context_plant, model_schunk,
-                       finger_setpoints.value(0).ravel())
+    #plant.SetPositions(context_plant, model_iiwa, q_iiwa_bin1)
+    #plant.SetPositions(context_plant, model_schunk,
+    #                   finger_setpoints.value(0).ravel())
 
     simulator = None
     if n_objects > 0:
@@ -111,49 +107,71 @@ def make_environment_model(
         diagram.Publish(context)
 
     
-    return diagram, context, simulator, inspector
+    return plant, diagram, context, simulator, scene_graph, inspector
 
 
-#%%
-directive_file = os.path.join(
-    os.getcwd(), 'models', 'bin_and_cameras.yml')
+if __name__ == '__main__':
+    #%%
+    directive_file = os.path.join(
+        os.getcwd(), 'models', 'bin_and_cameras.yaml')
 
-rng = None# np.random.default_rng(seed=1215232)
-# seed 12153432 looks kind of nice.
+    rng = np.random.default_rng(seed=1215232)
+    # seed 12153432 looks kind of nice.
 
-# clean up visualization.
-v = meshcat.Visualizer(zmq_url=zmq_url)
-v.delete()
-
-# build environment
-env, context_env, sim, inspector = make_environment_model(
-    directive=directive_file, rng=rng, draw=True, n_objects=5)
-grasp_sampler = GraspSamplerVision(env)
-
-viz = env.GetSubsystemByName('meshcat_visualizer')
-
-plant_env = env.GetSubsystemByName('plant')
-
-viz.reset_recording()
-viz.start_recording()
-
-cameras = [env.GetSubsystemByName(f'camera{i}') for i in range(3)]
-cam_contexts = [cam.GetMyMutableContextFromRoot(context_env) for cam in cameras]
-
-while True:
-    for cam, cam_context in zip(cameras, cam_contexts):
-        rgb_image = cam.GetOutputPort('color_image').Eval(cam_context).data
-        label_image = cam.GetOutputPort('label_image').Eval(cam_context).data
-
-        print(label_image)
-
-        img = rgb_image[:,:,:-1]
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        file = 'test.png'
-        cv2.imwrite(file, img)
+    # clean up visualization.
+    v = meshcat.Visualizer(zmq_url=zmq_url)
+    v.delete()
     
-    sim.AdvanceTo(t_current + q_traj.end_time())
+    num_iters = 1
 
-viz.stop_recording()
-viz.publish_recording()
+    for _ in range(num_iters):
+        # delete me to use the default nice seed
+        rng = np.random.default_rng()
+
+        # build environment
+        plant, env, context_env, sim, scene_graph, inspector = make_environment_model(
+            directive=directive_file, rng=rng, draw=True, n_objects=5)
+
+        produce_geo_ids = []
+
+        for i, geo_id in enumerate(inspector.GetAllGeometryIds()):
+            name = inspector.GetName(geo_id)
+            if 'visual' not in name or 'bin' in name or 'camera' in name:
+                continue
+
+            print('realname', name.split('::')[1].split('_')[0])
+            perception = inspector.GetPerceptionProperties(geo_id)
+            perception.UpdateProperty('label', 'id', RenderLabel(i))
+            perception.UpdateProperty('label', 'type', name.split('::')[1].split('_')[0])
+            print(inspector.GetName(geo_id))
+            print(inspector.GetPerceptionProperties(geo_id).GetProperty('label','id'))
+            produce_geo_ids.append(geo_id)
+        
+            #scene_graph.AssignRole(plant.get_source_id(), geo_id, perception)
+            geometry_label = inspector.GetPerceptionProperties(geo_id).GetProperty('label', 'id')
+
+        viz = env.GetSubsystemByName('meshcat_visualizer')
+
+        plant_env = env.GetSubsystemByName('plant')
+
+        viz.reset_recording()
+        viz.start_recording()
+
+        cameras = [env.GetSubsystemByName(f'camera{i}') for i in range(3)]
+        cam_contexts = [cam.GetMyMutableContextFromRoot(context_env) for cam in cameras]
+
+        for cam, cam_context in zip(cameras, cam_contexts):
+            rgb_image = cam.GetOutputPort('color_image').Eval(cam_context).data
+            label_image = cam.GetOutputPort('label_image').Eval(cam_context).data
+
+            #print(label_image)
+
+            img = rgb_image[:,:,:-1]
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            file = 'test.png'
+            cv2.imwrite(file, img)
+             
+
+        viz.stop_recording()
+        viz.publish_recording()
 

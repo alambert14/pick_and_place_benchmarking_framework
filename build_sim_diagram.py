@@ -16,8 +16,8 @@ from lime_bag import add_bag_of_lime, initialize_bag_of_lime
 
 #%%
 # object SDFs.
-# object_names = ['Lime', 'Cucumber', 'Mango']
-object_names = ['Cucumber']
+object_names = ['Lime', 'Cucumber', 'Mango']
+#object_names = ['Cucumber']
 sdf_dir = os.path.join(os.path.dirname(__file__), 'cad_files')
 object_sdfs = {name: os.path.join(sdf_dir, name + '_simplified.sdf')
                for name in object_names}
@@ -31,16 +31,12 @@ def add_objects(n_objects: int, obj_names: List[str], obj_sdfs: Dict[str, str],
     object_bodies = []
     lime_bag_bodies = []
     n_bags_of_lime = 0
-    for i in range(n_objects):
-        i_obj = i  % len(obj_names) # rng.integers(len(object_sdfs))
-        obj_name = obj_names[i_obj]
-        if obj_name == 'Lime':
-            lime_bodies = add_bag_of_lime(n_limes=5, bag_index=n_bags_of_lime,
-                                          plant=plant, parser=parser)
-            lime_bag_bodies.append(lime_bodies)
-            n_bags_of_lime += 1
-        else:
-            model = parser.AddModelFromFile(obj_sdfs[obj_name], f"object{i}")
+    produce_amounts = rng.integers(low=0, high=n_objects, size=len(object_names))
+
+    print('produce amts:', produce_amounts)
+    for amt, obj_name in zip(produce_amounts, object_names):
+        for i in range(amt):
+            model = parser.AddModelFromFile(obj_sdfs[obj_name], f"object_{obj_name}_{i}")
             object_bodies.append(plant.GetBodyByName('base_link', model))
             print(f'Adding {obj_name}')
 
