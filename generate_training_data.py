@@ -130,10 +130,12 @@ def get_annotations(label_image, object_data, image_id):
         
         good_contours = []
         threshold = 1000
+        areas = []
         for contour in contours:
             area = cv2.contourArea(contour)
             if area > 1000:
                 good_contours.append(contour)
+                areas.append(area)
             # org = (25, 50)
             # font = cv2.FONT_HERSHEY_SIMPLEX
             # # fontScale
@@ -155,11 +157,15 @@ def get_annotations(label_image, object_data, image_id):
             all_xys = np.concatenate((all_xys, contour.flatten()))
             print(all_xys)
 
+        # Construct the annotation
+        annotation_id += 1
+        annotation['segmentation'] = all_xys
+        annotation['area'] = sum(areas)
+        annotation['image_id'] = image_id
+        annotation['category_id'] = categories[info[1]]
+        annotation['id'] = annotation_id
+        annotations.append(annotation)
 
-        annotation['']
-
-                
-    
         # cv2.imshow(f'contours {image_id}', drawing)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
