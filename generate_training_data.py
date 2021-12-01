@@ -3,6 +3,7 @@ import os.path
 
 import cv2
 import numpy as np
+from imantics import Category, Image, Mask
 from pydrake.all import (
     PiecewisePolynomial, PidController, MultibodyPlant, RigidTransform,
     RandomGenerator, Simulator, InverseDynamicsController, ContactModel,
@@ -110,6 +111,16 @@ def make_environment_model(
     return plant, diagram, context, simulator, scene_graph, inspector
 
 
+def get_annotations(label_image, imantics_image, object_data):
+    annotations = {}
+    for i, info in object_data.items():
+        mask = Mask((image == i).astype(uint8))
+        if np.all(mask == 0):
+            continue
+
+
+
+
 if __name__ == '__main__':
     #%%
     directive_file = os.path.join(
@@ -171,7 +182,7 @@ if __name__ == '__main__':
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             file = 'test.png'
             cv2.imwrite(file, img)
-             
+            
 
         viz.stop_recording()
         viz.publish_recording()
