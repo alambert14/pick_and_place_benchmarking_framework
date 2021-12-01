@@ -132,20 +132,21 @@ if __name__ == '__main__':
         plant, env, context_env, sim, scene_graph, inspector = make_environment_model(
             directive=directive_file, rng=rng, draw=True, n_objects=5)
 
-        produce_geo_ids = []
+        # dictionary mapping id number (i) to tuple geometry id and type of produce
+        produce_geo_ids = {} 
 
         for i, geo_id in enumerate(inspector.GetAllGeometryIds()):
             name = inspector.GetName(geo_id)
             if 'visual' not in name or 'bin' in name or 'camera' in name:
                 continue
 
-            print('realname', name.split('::')[1].split('_')[0])
+            realname = name.split('::')[1].split('_')[0])
             perception = inspector.GetPerceptionProperties(geo_id)
             perception.UpdateProperty('label', 'id', RenderLabel(i))
-            perception.UpdateProperty('label', 'type', name.split('::')[1].split('_')[0])
+            perception.UpdateProperty('label', 'type', realname)
             print(inspector.GetName(geo_id))
             print(inspector.GetPerceptionProperties(geo_id).GetProperty('label','id'))
-            produce_geo_ids.append(geo_id)
+            produce_geo_ids[i] = (geo_id, realname)
         
             #scene_graph.AssignRole(plant.get_source_id(), geo_id, perception)
             geometry_label = inspector.GetPerceptionProperties(geo_id).GetProperty('label', 'id')
