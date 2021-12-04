@@ -3,10 +3,9 @@ import os.path
 from datetime import datetime
 import json
 import time
-
+import sys
 import cv2
 import numpy as np
-from imantics import Category, Image, Mask
 from pydrake.all import (
     PiecewisePolynomial, PidController, MultibodyPlant, RigidTransform,
     RandomGenerator, Simulator, InverseDynamicsController, ContactModel,
@@ -50,7 +49,6 @@ def make_environment_model(
     add_package_paths_local(parser)  # local.
     start_time = time.time()
     ProcessModelDirectives(LoadModelDirectives(directive), plant, parser)
-    print(f'load model time: {time.time() - start_time}')
     inspector = scene_graph.model_inspector()
     # Add objects.
     start_time = time.time()
@@ -62,12 +60,10 @@ def make_environment_model(
         parser=parser,
         #inspector=inspector,
         rng=rng)
-    print(f'add object time: {time.time() - start_time}')
 
     # Set contact model.
     start_time = time.time()
     plant.set_contact_model(ContactModel.kPointContactOnly)
-    print(f'set contact model time: {time.time() - start_time}')
     plant.Finalize()
     AddRgbdSensors(builder, plant, scene_graph)
 
@@ -117,7 +113,6 @@ def make_environment_model(
     simulator.AdvanceTo(2.0)
     simulator.set_target_realtime_rate(0.)
     
-    print(f'simulator time: {time.time() - start_time}')
     return plant, diagram, context, simulator, scene_graph, inspector
 
 
@@ -145,7 +140,6 @@ def get_annotations(label_image, object_data, image_id):
         # Get contours
         start_time = time.time()
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        print(f'contour detection time: {time.time() - start_time}')
         # drawing = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
         # cv2.drawContours(drawing, contours, -1, (255, 0, 0), 2, cv2.LINE_8, hierarchy, 0)
         
@@ -195,6 +189,7 @@ def get_annotations(label_image, object_data, image_id):
 
 if __name__ == '__main__':
     #%%
+    sys.stdout.flush()
     directive_file = os.path.join(
         os.getcwd(), 'models', 'bin_and_cameras.yaml')
 
@@ -205,7 +200,7 @@ if __name__ == '__main__':
     v = meshcat.Visualizer(zmq_url=zmq_url)
     v.delete()
     
-    num_iters = 100
+    num_iters = 250
 
     images = []
     annotations = []
@@ -223,15 +218,19 @@ if __name__ == '__main__':
         'date_created': datetime.now().isoformat().replace('T', ' '),
     }
 
+    num_skipped = 0
+
     for n in range(num_iters):
+        print('iter', n)
         # delete me to use the default nice seed
         rng = np.random.default_rng()
 
         # build environment
         try:
             plant, env, context_env, sim, scene_graph, inspector = make_environment_model(
-                directive=directive_file, rng=rng, draw=True, n_objects=10)
+                directive=directive_file, rng=rng, draw=False, n_objects=10)
         except RuntimeError:
+            num_skipped += 1
             continue
 
         # dictionary mapping id number (i) to tuple geometry id and type of produce
@@ -257,23 +256,18 @@ if __name__ == '__main__':
             perception = inspector.GetPerceptionProperties(geo_id)
             perception.UpdateProperty('label', 'id', RenderLabel(realid))
             # perception.UpdateProperty('label', 'type', realname)
-            print(inspector.GetName(geo_id))
-            print(inspector.GetPerceptionProperties(geo_id).GetProperty('label','id'))
             produce_geo_ids[realid] = (geo_id, realname)
         
             #scene_graph.AssignRole(plant.get_source_id(), geo_id, perception)
             geometry_label = inspector.GetPerceptionProperties(geo_id).GetProperty('label', 'id')
-            print(geometry_label == realid)
 
-        print(f'inspect geometry time: {time.time() - start_time}')
 
-        print(produce_geo_ids)
-        viz = env.GetSubsystemByName('meshcat_visualizer')
+        #viz = env.GetSubsystemByName('meshcat_visualizer')
 
         plant_env = env.GetSubsystemByName('plant')
 
-        viz.reset_recording()
-        viz.start_recording()
+        #viz.reset_recording()
+        #viz.start_recording()
 
         cameras = [env.GetSubsystemByName(f'camera{i}') for i in range(3)]
         cam_contexts = [cam.GetMyMutableContextFromRoot(context_env) for cam in cameras]
@@ -281,15 +275,15 @@ if __name__ == '__main__':
         for idx, (cam, cam_context) in enumerate(zip(cameras, cam_contexts)):
             rgb_image = cam.GetOutputPort('color_image').Eval(cam_context).data
             label_image = cam.GetOutputPort('label_image').Eval(cam_context).data
-            print(np.unique(label_image))
 
             filename = os.path.join(training_dir, f'cam{idx}_{n}.png')
 
             img = rgb_image[:,:,:-1]
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
             cv2.imwrite(filename, img)
 
-            print(img.shape)
+
             image_info = {}
             image_info['file_name'] = filename
             image_info['height'] = img.shape[0]
@@ -301,9 +295,13 @@ if __name__ == '__main__':
             
             annotations += get_annotations(label_image, produce_geo_ids, image_info['id'])
 
-        viz.stop_recording()
-        viz.publish_recording()
-
+        #viz.stop_recording()
+        #viz.publish_recording()
+    print()
+    print('##########################')
+    print('skipped:',num_skipped)
+    print('##########################')
+    print()
     coco = {
         'info': info,
         'images': images,

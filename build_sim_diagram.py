@@ -34,12 +34,12 @@ def add_objects(n_objects: int, obj_names: List[str], obj_sdfs: Dict[str, str],
     produce_amounts = rng.integers(low=1, high=n_objects, size=len(object_names))
     # produce_amounts = (3, 2, 2)
 
-    print('produce amts:', produce_amounts)
+    #print('produce amts:', produce_amounts)
     for amt, obj_name in zip(produce_amounts, object_names):
         for i in range(amt):
             model = parser.AddModelFromFile(obj_sdfs[obj_name], f"object_{obj_name}_{i}")
             object_bodies.append(plant.GetBodyByName('base_link', model))
-            print(f'Adding {obj_name}')
+            #print(f'Adding {obj_name}')
 
     return object_bodies, lime_bag_bodies
 
