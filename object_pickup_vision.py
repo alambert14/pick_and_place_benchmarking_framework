@@ -15,7 +15,7 @@ import meshcat
 from manipulation.scenarios import AddRgbdSensors
 from manipulation.utils import AddPackagePaths
 
-from utils import (SimpleTrajectorySource, concatenate_traj_list,
+from robot_utils import (SimpleTrajectorySource, concatenate_traj_list,
                    add_package_paths_local, render_system_with_graphviz)
 from grasp_sampler_vision import GraspSamplerVision, zmq_url
 from inverse_kinematics import calc_joint_trajectory
@@ -30,8 +30,13 @@ sdf_dir = os.path.join(os.path.dirname(__file__), 'cad_files')
 object_sdfs = {name: os.path.join(sdf_dir, name + '_simplified.sdf')
                for name in object_names}
 
-q_iiwa_bin0 = np.array([-np.pi / 2, 0.1, 0, -1.2, 0, 1.6, 0])
-q_iiwa_bin1 = np.array([0, 0.1, 0, -1.2, 0, 1.6, 0])
+bin_qs = {
+    0: np.array([-np.pi / 2, 0.1, 0, -1.2, 0, 1.6, 0]),
+    1: np.array([0, 0.1, 0, -1.2, 0, 1.6, 0]),
+    2: np.array([np.pi / 2, 0.1, 0, -1.2, 0, 1.6, 0]),
+    3: np.array([-np.pi, 0.1, 0, -1.2, 0, 1.6, 0])
+}
+label_to_bin = {'Cucumber': 1, 'Mango': 2, 'Lime': 3}
 
 
 def make_environment_model(
@@ -63,7 +68,7 @@ def make_environment_model(
 
     # Robot control.
     plant_iiwa_controller, model_iiwa = add_controlled_iiwa_and_trj_source(builder, plant,
-                                                                           q0=q_iiwa_bin1)
+                                                                           q0=bin_qs[1])
 
     # Gripper Finger Control
     model_schunk = plant.GetModelInstanceByName('schunk')
@@ -112,7 +117,7 @@ def make_environment_model(
     # Set initial conditions.
     # robot and gripper initial conditions.
     context_plant = plant.GetMyContextFromRoot(context)
-    plant.SetPositions(context_plant, model_iiwa, q_iiwa_bin1)
+    plant.SetPositions(context_plant, model_iiwa, bin_qs[1])
     plant.SetPositions(context_plant, model_schunk,
                        finger_setpoints.value(0).ravel())
 
@@ -159,32 +164,35 @@ context_iiwa_plant = plant_iiwa_controller.CreateDefaultContext()
 iiwa_model = plant_iiwa_controller.GetModelInstanceByName('iiwa')
 frame_E = plant_iiwa_controller.GetBodyByName('wsg_equivalent').body_frame()
 
-plant_iiwa_controller.SetPositions(context_iiwa_plant, q_iiwa_bin0)
+plant_iiwa_controller.SetPositions(context_iiwa_plant, bin_qs[0])
 X_WE_bin0 = plant_iiwa_controller.CalcRelativeTransform(
     context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
 
-plant_iiwa_controller.SetPositions(context_iiwa_plant, q_iiwa_bin1)
+plant_iiwa_controller.SetPositions(context_iiwa_plant, bin_qs[1])
 X_WE_bin1 = plant_iiwa_controller.CalcRelativeTransform(
     context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
-# X_WE_bin1.set_rotation(RollPitchYaw(0, 0, np.pi/2))
 
 # commonly used trajectories
 nq = 7
-q_traj_01 = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
-    [0, 3], np.vstack([q_iiwa_bin0, q_iiwa_bin1]).T,
-    np.zeros(nq), np.zeros((nq)))
 
-
-def get_q_traj_10():
-    q_traj_10 = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
-        [0, 3], np.vstack([q_iiwa_bin1, q_iiwa_bin0]).T,
+def get_bin_traj(bin_id):
+    q_traj = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
+        [0, 3], np.vstack([bin_qs[0], bin_qs[bin_id]]).T,
         np.zeros(nq), np.zeros((nq)))
 
-    return q_traj_10
+    return q_traj
+
+
+def get_return_traj(bin_id):
+    q_traj = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
+        [0, 3], np.vstack([bin_qs[bin_id], bin_qs[0]]).T,
+        np.zeros(nq), np.zeros((nq)))
+
+    return q_traj
 
 
 q_traj_1_hold = PiecewisePolynomial.ZeroOrderHold(
-    [0, 1], np.vstack([q_iiwa_bin1, q_iiwa_bin1]).T)
+    [0, 1], np.vstack([bin_qs[1], bin_qs[1]]).T)
 
 
 #%%
@@ -235,7 +243,7 @@ while True:
     cv2.imwrite(file, img)
     # Sample some grasps.
     print('Sampling new grasps...')
-    X_Gs_best = grasp_sampler.sample_grasp_candidates(
+    X_Gs_best, label = grasp_sampler.sample_grasp_candidates(
         context_env, draw_grasp_candidates=False)
     if len(X_Gs_best) == 0:
         print('No more grasp candidates, terminating...')
@@ -248,7 +256,7 @@ while True:
     q_traj_0_to_above, q_traj_above_to_0 = calc_joint_trajectory(
         X_WE_start=X_WE_bin0, X_WE_final=X_WE_above, duration=durations[1],
         frame_E=frame_E, plant=plant_iiwa_controller,
-        q_initial_guess=q_iiwa_bin0)
+        q_initial_guess=bin_qs[0])
 
     # above to grasp
     q_traj_above_to_grasp, q_traj_grasp_to_above = calc_joint_trajectory(
@@ -261,11 +269,13 @@ while True:
     q_traj_grasp_hold = PiecewisePolynomial.ZeroOrderHold(
         [0, durations[3]], np.vstack([q_grasping, q_grasping]).T)
 
-    q_traj_10 = get_q_traj_10()
+    bin_id = label_to_bin[label]
+    q_bin_traj = get_bin_traj(bin_id)
+    q_return_traj = get_return_traj(bin_id)
     q_traj = concatenate_traj_list(
-        [q_traj_10, q_traj_0_to_above, q_traj_above_to_grasp,
+        [get_return_traj(bin_id), q_traj_0_to_above, q_traj_above_to_grasp,
          q_traj_grasp_hold,
-         q_traj_grasp_to_above, q_traj_above_to_0, q_traj_01, q_traj_1_hold])
+         q_traj_grasp_to_above, q_traj_above_to_0, q_bin_traj, q_traj_1_hold])
 
     # update time in trajectory sources.
     t_current = context_env.get_time()

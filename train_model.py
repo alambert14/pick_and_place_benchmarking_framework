@@ -55,7 +55,7 @@ class COCODataset(data.Dataset):
             masks.append(mask)
             bbox = annotation['bounding_box']
             boxes.append([bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]])
-            labels.append(annotation['category_id'])
+            labels.append(annotation['category_id'] - 1)
             areas.append(annotation['area'])
 
 

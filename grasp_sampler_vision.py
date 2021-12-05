@@ -14,7 +14,7 @@ from pydrake.all import (
 )
 from tqdm import tqdm
 
-from utils import add_package_paths_local
+from robot_utils import add_package_paths_local
 
 zmq_url = "tcp://127.0.0.1:6000"
 
@@ -294,4 +294,7 @@ class GraspSamplerVision:
                 draw_grasp_candidate(X_Gs[i], prefix=f"{i}th best",
                                      draw_frames=False)
 
-        return X_Gs_best
+        # TODO: get label of grasp
+        label = 'Cucumber'
+
+        return X_Gs_best, label
