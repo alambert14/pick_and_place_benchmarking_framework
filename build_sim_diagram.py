@@ -10,7 +10,7 @@ from pydrake.math import RollPitchYaw
 from robotics_utilities.iiwa_controller.utils import (
     create_iiwa_controller_plant)
 
-from utils import SimpleTrajectorySource
+from robot_utils import SimpleTrajectorySource
 from grasp_sampler_vision import *
 from lime_bag import add_bag_of_lime, initialize_bag_of_lime
 

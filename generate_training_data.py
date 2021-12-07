@@ -25,6 +25,7 @@ from inverse_kinematics import calc_joint_trajectory
 from build_sim_diagram import (add_controlled_iiwa_and_trj_source, add_objects,
     set_object_drop_pose)
 
+
 #%%
 # object SDFs.
 # object_names = ['Lime', 'Cucumber', 'Mango']

@@ -3,6 +3,8 @@ import os
 import meshcat
 import numpy as np
 import open3d as o3d
+import cv2
+from PIL import Image
 from manipulation.meshcat_utils import draw_open3d_point_cloud, draw_points
 from manipulation.open3d_utils import create_open3d_point_cloud
 from manipulation.utils import FindResource, AddPackagePaths
@@ -11,17 +13,23 @@ from pydrake.all import (
     DiagramBuilder, RigidTransform, RotationMatrix,
     FindResourceOrThrow, Diagram,
     Parser, ProcessModelDirectives, LoadModelDirectives,
+    PointCloud, Fields, BaseField
 )
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
-from utils import add_package_paths_local
+from robot_utils import add_package_paths_local
+
+import train_model
+import torch
+from torchvision.transforms import functional as F
 
 zmq_url = "tcp://127.0.0.1:6000"
 
 
 # scoring grasp candidiates
 def grasp_candidate_cost(plant_context, cloud, plant, scene_graph,
-                         scene_graph_context, adjust_X_G=False, textbox=None,
+                         scene_graph_context, grasp_points, adjust_X_G=False, textbox=None,
                          meshcat=None):
     body = plant.GetBodyByName("body")
     X_G = plant.GetFreeBodyPose(plant_context, body)
@@ -108,8 +116,11 @@ def process_point_cloud(diagram, context, cameras, bin_name):
     # Evaluate the camera output ports to get the images.
     merged_pcd = o3d.geometry.PointCloud()
     for c in cameras:
+        print(c)
         point_cloud = diagram.GetOutputPort(f"{c}_point_cloud").Eval(context)
+        print(f'point cloud shape: {point_cloud.size()}')
         pcd = create_open3d_point_cloud(point_cloud)
+        print(f'open3d shape: {np.asarray(pcd.points)}')
 
         # Crop to region of interest.
         pcd = pcd.crop(
@@ -123,15 +134,68 @@ def process_point_cloud(diagram, context, cameras, bin_name):
 
         camera = plant.GetModelInstanceByName(c)
         body = plant.GetBodyByName("base", camera)
-        X_C = plant.EvalBodyPoseInWorld(plant_context, body)
-        pcd.orient_normals_towards_camera_location(X_C.translation())
+        X_WC = plant.EvalBodyPoseInWorld(plant_context, body)
+        pcd.orient_normals_towards_camera_location(X_WC.translation())
 
         # Merge point clouds.
         merged_pcd += pcd
 
-    # Voxelize down-sample.  (Note that the normals still look reasonable)
+    # Voxelize down-sample.  (Note that the normals still look reasonable)'
+    print(f'open3d shape: {np.asarray(merged_pcd.points).shape}')
     return merged_pcd.voxel_down_sample(voxel_size=0.005)
 
+# From pose_estimation_icp.ipynb
+def pcl_np2drake(np_cloud):
+    assert(np_cloud.shape[1] == 3)
+    pcl_drake = PointCloud(new_size = np_cloud.shape[0],
+                           fields=Fields(BaseField.kXYZs | BaseField.kRGBs))
+
+    xyzs = pcl_drake.mutable_xyzs()
+    xyzs[:,:] = np.array(np_cloud).transpose()
+
+    return pcl_drake
+
+def pcl_to_camera1(diagram, context, cloud):
+    plant = diagram.GetSubsystemByName("plant")
+    plant_context = plant.GetMyContextFromRoot(context)
+
+    camera = plant.GetModelInstanceByName('camera1')
+    body = plant.GetBodyByName("base", camera)
+    X_WC = plant.EvalBodyPoseInWorld(plant_context, body)
+    X_WP = np.asarray(cloud.points)
+    # p means points :)
+    X_CP = X_WC.inverse() @ X_WP.T
+
+    return X_CP.T
+
+def get_masked_pcl(diagram, cloud, mask):
+    cam = diagram.GetSubsystemByName('camera1')
+    intrinsics = cam.depth_camera_info()
+    cx = intrinsics.center_x()
+    cy = intrinsics.center_y()
+    fx = intrinsics.focal_x()
+    fy = intrinsics.focal_y()
+
+    masked_pcl = []
+    for_display = np.zeros([480, 640])
+    print(cloud)
+    for p in cloud:
+        u = (p[1] * fy) / p[2] + cy
+        v = (p[0] * fx) / p[2] + cx
+
+        print(u,v)
+        print('got here!!!')
+        try:
+            if mask[round(u), round(v)]:
+                masked_pcl.append(p)
+                for_display[round(u), round(v)] = p[2]
+        except IndexError:
+            pass
+
+    print('got to plot')
+    print(np.unique(for_display))
+    print(np.unique((for_display * 255).astype(np.uint8)))
+    cv2.imwrite('masked_pcl.png', (for_display * 255).astype(np.uint8))
 
 def generate_grasp_candidate_antipodal(plant_context, cloud, plant, scene_graph,
                                        scene_graph_context, rng,
@@ -226,6 +290,17 @@ def draw_grasp_candidate(X_G, prefix='gripper', draw_frames=True):
     meshcat.load()
     diagram.Publish(context)
 
+def prediction_to_masks(prediction):
+    masks = []
+    for i in range(prediction[0]['masks'].size()[0]):
+        print(f'label is: {prediction[0]["labels"][i]}')
+        img_array = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
+        _, thresh = cv2.threshold(img_array,90,255,cv2.THRESH_BINARY)
+        dilation = cv2.dilate(thresh,np.ones((5,5)).astype(np.uint8), iterations = 1)
+        thresh = cv2.erode(dilation,np.ones((5,5)).astype(np.uint8), iterations = 1)
+        masks.append((thresh == 255).astype(np.uint8))
+
+    return masks
 
 class GraspSamplerVision:
     def __init__(self, environment: Diagram):
@@ -262,9 +337,47 @@ class GraspSamplerVision:
         self.diagram = diagram
         self.viz = viz
 
+        self.model = train_model.get_model_instance_segmentation(4)
+        self.model.load_state_dict(torch.load('../veggie_master_20000.pth', map_location=torch.device('cpu')))
+
+
     def sample_grasp_candidates(self, context_env, draw_grasp_candidates=True):
         cloud = process_point_cloud(self.env, context_env,
                                     ["camera0", "camera1", "camera2"], "bin0")
+
+        camera = self.env.GetSubsystemByName('camera1')
+        cam_context = camera.GetMyMutableContextFromRoot(context_env)
+        rgb_image_np = camera.GetOutputPort('color_image').Eval(cam_context).data
+        rgb_image = Image.fromarray(rgb_image_np).convert("RGB")
+        rgb_image.save('rgb_for_figure.png')
+        rgb_image = F.to_tensor(rgb_image)
+
+        # Create pretty drawings for paper
+        # font = cv2.FONT_HERSHEY_SIMPLEX
+        # # fontScale
+        # fontScale = 0.75
+        # # Blue color in BGR
+        # color = (0, 255, 0)
+        # drawing = cv2.putText(drawing, f'area (px): {area}', org, font,
+        #        fontScale, color, 3, cv2.LINE_AA)
+
+        # drawing = cv2.putText(drawing, f'label: {info[1]}', (350, 50), font,
+        #        fontScale, color, 3, cv2.LINE_AA)
+
+        print(rgb_image.size())
+        self.model.eval()
+        with torch.no_grad():
+            prediction = self.model([rgb_image.to(torch.device('cpu'))])
+
+        mask = prediction_to_masks(prediction)[0]
+        label = prediction[0]['labels'][0]
+
+
+        # TRY OUR FUNCTION:
+        X_CP = pcl_to_camera1(self.env, context_env, cloud)
+
+        get_masked_pcl(self.env, X_CP, mask)
+
         if cloud.is_empty():
             return []
 
@@ -294,4 +407,7 @@ class GraspSamplerVision:
                 draw_grasp_candidate(X_Gs[i], prefix=f"{i}th best",
                                      draw_frames=False)
 
-        return X_Gs_best
+        # TODO: get label of grasp
+        label = 'Cucumber'
+
+        return X_Gs_best, label
