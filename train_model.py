@@ -166,7 +166,7 @@ if __name__ == '__main__':
     # output = model(images,targets)   # Returns losses and detections
     # print(output)
     # pick one image from the test set
-    img, _ = dataset_test[3]
+    img, _device = dataset_test[3]
     # put the model in evaluation mode
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.eval()
