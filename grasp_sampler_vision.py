@@ -26,10 +26,11 @@ from torchvision.transforms import functional as F
 
 zmq_url = "tcp://127.0.0.1:6000"
 
+label_to_string = {1: 'Cucumber', 2: 'Lime', 3: 'Mango'}
 
 # scoring grasp candidiates
 def grasp_candidate_cost(plant_context, cloud, plant, scene_graph,
-                         scene_graph_context, grasp_points, adjust_X_G=False, textbox=None,
+                         scene_graph_context, adjust_X_G=False, textbox=None,
                          meshcat=None):
     body = plant.GetBodyByName("body")
     X_G = plant.GetFreeBodyPose(plant_context, body)
@@ -156,19 +157,29 @@ def pcl_np2drake(np_cloud):
     return pcl_drake
 
 def pcl_to_camera1(diagram, context, cloud):
+    """
+    returns open3d pointcloud
+    """
     plant = diagram.GetSubsystemByName("plant")
     plant_context = plant.GetMyContextFromRoot(context)
 
     camera = plant.GetModelInstanceByName('camera1')
     body = plant.GetBodyByName("base", camera)
     X_WC = plant.EvalBodyPoseInWorld(plant_context, body)
+    X_CW = X_WC.inverse()
     X_WP = np.asarray(cloud.points)
     # p means points :)
-    X_CP = X_WC.inverse() @ X_WP.T
+    # X_CP = X_WC.inverse() @ X_WP.T
 
-    return X_CP.T
+    # pcl.points = o3d.utility.Vector3dVector(np.array(X_CP))
+    # pcl.normals = o3d.utility.Vector3dVector(np.array(normals))
+
+    return cloud.transform(X_CW.GetAsMatrix4()) # X_CP.T
 
 def get_masked_pcl(diagram, cloud, mask):
+    """
+    cloud: open3d PointCloud in camera1 frame
+    """
     cam = diagram.GetSubsystemByName('camera1')
     intrinsics = cam.depth_camera_info()
     cx = intrinsics.center_x()
@@ -177,14 +188,16 @@ def get_masked_pcl(diagram, cloud, mask):
     fy = intrinsics.focal_y()
 
     masked_pcl = []
+    normals = []
     for_display = np.zeros([480, 640])
-    for p in cloud:
+    for p, n in zip(cloud.points, cloud.normals):
         u = (p[1] * fy) / p[2] + cy
         v = (p[0] * fx) / p[2] + cx
 
         try:
             if mask[round(u), round(v)]:
                 masked_pcl.append(p)
+                normals.append(n)
                 for_display[round(u), round(v)] = p[2]
         except IndexError:
             pass
@@ -195,6 +208,8 @@ def get_masked_pcl(diagram, cloud, mask):
     pcl = o3d.geometry.PointCloud()
     print('shapeshape', np.array(masked_pcl).shape)
     pcl.points = o3d.utility.Vector3dVector(np.array(masked_pcl))
+    pcl.normals = o3d.utility.Vector3dVector(np.array(normals))
+
     return pcl
 
 def generate_grasp_candidate_antipodal(plant_context, cloud, plant, scene_graph,
@@ -209,6 +224,7 @@ def generate_grasp_candidate_antipodal(plant_context, cloud, plant, scene_graph,
     n_tries = 0
     n_tries_ub = 100
     while n_tries < n_tries_ub:
+        print(cloud.points)
         index = rng.integers(0, len(cloud.points) - 1)
         p_WS = np.asarray(cloud.points[index])
         n_WS = np.asarray(cloud.normals[index])
@@ -393,6 +409,14 @@ class GraspSamplerVision:
         costs = []
         labels = []
 
+        context = self.diagram.CreateDefaultContext()
+        plant_context = self.plant.GetMyContextFromRoot(context)
+        scene_graph_context = self.sg.GetMyContextFromRoot(context)
+
+        camera_model = self.plant.GetModelInstanceByName('camera1')
+        body = self.plant.GetBodyByName("base", camera_model)
+        X_WC = self.plant.EvalBodyPoseInWorld(plant_context, body)
+
         for idx, mask in enumerate(masks):
             print('label',prediction[0]['labels'][idx])
             label = prediction[0]['labels'][idx] 
@@ -401,14 +425,13 @@ class GraspSamplerVision:
 
             cloud = get_masked_pcl(self.env, X_CP, mask)
 
-            if cloud.is_empty() == 0:
+            if cloud.is_empty():
                 continue
 
             #draw_open3d_point_cloud(self.viz.vis['cloud'], cloud, size=0.003)
 
-            context = self.diagram.CreateDefaultContext()
-            plant_context = self.plant.GetMyContextFromRoot(context)
-            scene_graph_context = self.sg.GetMyContextFromRoot(context)
+
+            cloud = cloud.transform(X_WC.GetAsMatrix4())
 
             for i in tqdm(range(100)):
                 cost, X_G = generate_grasp_candidate_antipodal(
@@ -434,4 +457,4 @@ class GraspSamplerVision:
         # TODO: get label of grasp
         label = labels[index]
 
-        return X_Gs_best, label
+        return X_Gs_best, label_to_string[int(label)]

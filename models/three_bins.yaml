@@ -44,3 +44,18 @@ directives:
 - add_weld:
     parent: bin2_origin
     child: bin2::bin_base
+
+- add_frame:
+    name: bin3_origin
+    X_PF:
+        base_frame: world
+        rotation: !Rpy { deg: [0.0, 0.0, 90.0]}
+        translation: [-0.05, 0.58, -0.015]
+
+- add_model:
+    name: bin3
+    file: package://local/bin_ocado.sdf
+
+- add_weld:
+    parent: bin3_origin
+    child: bin3::bin_base

@@ -253,6 +253,7 @@ while True:
     X_WE_grasp = X_Gs_best[0]
     X_WE_above = RigidTransform(X_WE_grasp)
     X_WE_above.set_translation(X_WE_grasp.translation() + np.array([0, 0, 0.3]))
+    print(X_WE_above)
     q_traj_0_to_above, q_traj_above_to_0 = calc_joint_trajectory(
         X_WE_start=X_WE_bin0, X_WE_final=X_WE_above, duration=durations[1],
         frame_E=frame_E, plant=plant_iiwa_controller,
