@@ -29,7 +29,7 @@ zmq_url = "tcp://127.0.0.1:6000"
 label_to_string = {1: 'Cucumber', 2: 'Lime', 3: 'Mango'}
 
 # scoring grasp candidiates
-def grasp_candidate_cost(plant_context, cloud, plant, scene_graph,
+def grasp_candidate_cost(plant_context, masked_cloud, whole_cloud, plant, scene_graph,
                          scene_graph_context, adjust_X_G=False, textbox=None,
                          meshcat=None):
     body = plant.GetBodyByName("body")
@@ -37,7 +37,7 @@ def grasp_candidate_cost(plant_context, cloud, plant, scene_graph,
 
     # Transform cloud into gripper frame
     X_GW = X_G.inverse()
-    pts = np.asarray(cloud.points).T
+    pts = np.asarray(masked_cloud.points).T
     p_GC = X_GW.multiply(pts)
 
     # Crop to a region inside of the finger box.
@@ -70,7 +70,7 @@ def grasp_candidate_cost(plant_context, cloud, plant, scene_graph,
 
     # Check collisions between the gripper and the point cloud
     margin = 0.0  # must be smaller than the margin used in the point cloud preprocessing.
-    for pt in cloud.points:
+    for pt in whole_cloud.points:
         distances = query_object.ComputeSignedDistanceToPoint(pt,
                                                               threshold=margin)
         if distances:
@@ -80,7 +80,7 @@ def grasp_candidate_cost(plant_context, cloud, plant, scene_graph,
                 textbox.value += f"cost: {cost}"
             return cost
 
-    n_GC = X_GW.rotation().multiply(np.asarray(cloud.normals)[indices, :].T)
+    n_GC = X_GW.rotation().multiply(np.asarray(masked_cloud.normals)[indices, :].T)
 
     # Penalize deviation of the gripper from vertical.
     # weight * -dot([0, 0, -1], R_G * [0, 1, 0]) = weight * R_G[2,1]
@@ -212,7 +212,7 @@ def get_masked_pcl(diagram, cloud, mask):
 
     return pcl
 
-def generate_grasp_candidate_antipodal(plant_context, cloud, plant, scene_graph,
+def generate_grasp_candidate_antipodal(plant_context, masked_cloud, whole_cloud, plant, scene_graph,
                                        scene_graph_context, rng,
                                        meshcat_vis=None):
     """
@@ -224,10 +224,10 @@ def generate_grasp_candidate_antipodal(plant_context, cloud, plant, scene_graph,
     n_tries = 0
     n_tries_ub = 100
     while n_tries < n_tries_ub:
-        print(cloud.points)
-        index = rng.integers(0, len(cloud.points) - 1)
-        p_WS = np.asarray(cloud.points[index])
-        n_WS = np.asarray(cloud.normals[index])
+        print(masked_cloud.points)
+        index = rng.integers(0, len(masked_cloud.points) - 1)
+        p_WS = np.asarray(masked_cloud.points[index])
+        n_WS = np.asarray(masked_cloud.normals[index])
         n_WS_norm = np.linalg.norm(n_WS)
         if np.isclose(n_WS_norm, 1.0, atol=1e-2):
             n_WS /= n_WS_norm
@@ -273,7 +273,7 @@ def generate_grasp_candidate_antipodal(plant_context, cloud, plant, scene_graph,
 
         X_G = RigidTransform(R_WG2, p_WG)
         plant.SetFreeBodyPose(plant_context, body, X_G)
-        cost = grasp_candidate_cost(plant_context, cloud, plant, scene_graph,
+        cost = grasp_candidate_cost(plant_context, masked_cloud, whole_cloud, plant, scene_graph,
                                     scene_graph_context, adjust_X_G=True,
                                     meshcat=meshcat_vis)
         X_G = plant.GetFreeBodyPose(plant_context, body)
@@ -423,19 +423,19 @@ class GraspSamplerVision:
             # TRY OUR FUNCTION:
             X_CP = pcl_to_camera1(self.env, context_env, cloud)
 
-            cloud = get_masked_pcl(self.env, X_CP, mask)
+            masked_cloud = get_masked_pcl(self.env, X_CP, mask)
 
-            if cloud.is_empty():
+            if masked_cloud.is_empty():
                 continue
 
             #draw_open3d_point_cloud(self.viz.vis['cloud'], cloud, size=0.003)
 
 
-            cloud = cloud.transform(X_WC.GetAsMatrix4())
+            masked_cloud = masked_cloud.transform(X_WC.GetAsMatrix4())
 
             for i in tqdm(range(100)):
                 cost, X_G = generate_grasp_candidate_antipodal(
-                    plant_context, cloud,
+                    plant_context, masked_cloud, cloud,
                     self.plant, self.sg,
                     scene_graph_context,
                     self.rng)
