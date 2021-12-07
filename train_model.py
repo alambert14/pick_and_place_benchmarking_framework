@@ -137,23 +137,63 @@ if __name__ == '__main__':
     print(image_to_annotations.keys())
     print(new_image_ids)
 
-    model = get_model_instance_segmentation(3)
+    model = get_model_instance_segmentation(4)
+    model.load_state_dict(torch.load('../veggie_master_20000.pth', map_location=torch.device('cpu')))
 
+
+    # use our dataset and defined transformations
     dataset = COCODataset(training_dir, image_to_annotations, new_image_ids, get_transform(train=True))
+    dataset_test = COCODataset(training_dir, image_to_annotations, new_image_ids, get_transform(train=False))
+
+    # split the dataset in train and test set
+    torch.manual_seed(1)
+    indices = torch.randperm(len(dataset)).tolist()
+    dataset = torch.utils.data.Subset(dataset, indices[:-50])
+    dataset_test = torch.utils.data.Subset(dataset_test, indices[-50:])
+
+    # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=2, shuffle=True, num_workers=4,
+        dataset, batch_size=1, shuffle=True, num_workers=1,
+        collate_fn=utils.collate_fn)
+
+    data_loader_test = torch.utils.data.DataLoader(
+        dataset_test, batch_size=1, shuffle=False, num_workers=1,
         collate_fn=utils.collate_fn)
     # For Training
-    images,targets = next(iter(data_loader))
-    images = list(image for image in images)
-    targets = [{k: v for k, v in t.items()} for t in targets]
-    output = model(images,targets)   # Returns losses and detections
-    print(output)
-    # For inference
+    # images,targets = next(iter(data_loader))
+    # images = list(image for image in images)
+    # targets = [{k: v for k, v in t.items()} for t in targets]
+    # output = model(images,targets)   # Returns losses and detections
+    # print(output)
+    # pick one image from the test set
+    img, _ = dataset_test[3]
+    # put the model in evaluation mode
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.eval()
-    x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
-    predictions = model(x)           # Returns predictions
+    with torch.no_grad():
+        prediction = model([img.to(device)])
 
-    print(predictions)
+    # # For inference
+    # model.eval()
+    # x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
+    # predictions = model(x)           # Returns predictions
+
+    # print(predictions)
+
+    print(prediction)
+    img = Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())
+    img.save('scene.png')
+    print('this many masks: ', prediction[0]['masks'].size())
+    for i in range(prediction[0]['masks'].size()[0]):
+        print(f'label is: {prediction[0]["labels"][i]}')
+        img_array = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
+        _, thresh = cv2.threshold(img_array,90,255,cv2.THRESH_BINARY)
+        dilation = cv2.dilate(thresh,np.ones((5,5)).astype(np.uint8), iterations = 1)
+        thresh = cv2.erode(dilation,np.ones((5,5)).astype(np.uint8), iterations = 1)
+
+        print(thresh)
+        cv2.imwrite(f'thresh_mask_{i}.png', thresh)
+        mask_pred = Image.fromarray(img_array)
+        mask_pred.save(f'mask_{i}.png')
 
 
