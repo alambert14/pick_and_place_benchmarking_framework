@@ -348,21 +348,10 @@ class GraspSamplerVision:
         camera = self.env.GetSubsystemByName('camera1')
         cam_context = camera.GetMyMutableContextFromRoot(context_env)
         rgb_image_np = camera.GetOutputPort('color_image').Eval(cam_context).data
-        rgb_image = Image.fromarray(rgb_image_np).convert("RGB")
-        rgb_image.save('rgb_for_figure.png')
-        rgb_image = F.to_tensor(rgb_image)
+        rgb_image_pil = Image.fromarray(rgb_image_np).convert("RGB")
+        rgb_image_pil.save('rgb_for_figure.png')
+        rgb_image = F.to_tensor(rgb_image_pil)
 
-        # Create pretty drawings for paper
-        # font = cv2.FONT_HERSHEY_SIMPLEX
-        # # fontScale
-        # fontScale = 0.75
-        # # Blue color in BGR
-        # color = (0, 255, 0)
-        # drawing = cv2.putText(drawing, f'area (px): {area}', org, font,
-        #        fontScale, color, 3, cv2.LINE_AA)
-
-        # drawing = cv2.putText(drawing, f'label: {info[1]}', (350, 50), font,
-        #        fontScale, color, 3, cv2.LINE_AA)
 
         print(rgb_image.size())
         self.model.eval()
@@ -370,8 +359,27 @@ class GraspSamplerVision:
             prediction = self.model([rgb_image.to(torch.device('cpu'))])
 
         mask = prediction_to_masks(prediction)[0]
+        cv2.imwrite('nice_mask.png', mask * 255)
         label = prediction[0]['labels'][0]
 
+        # Create pretty drawings for paper[0][0]
+        contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # center of contour
+        M = cv2.moments(contours[0])
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+
+        label_to_veg = {1: 'Cucumber', 2: 'Lime', 3: 'Mango'}
+
+        drawing = cv2.cvtColor(np.array(rgb_image_pil), cv2.COLOR_BGR2RGB)
+        cv2.drawContours(drawing, contours, -1, (0, 255, 0), 3, cv2.LINE_8, hierarchy, 0)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        # fontScale
+        fontScale = 1
+        drawing = cv2.putText(drawing, f'label: {label_to_veg[int(label)]}', (cX, cY), font,
+               fontScale, (255, 255, 255), 3, cv2.LINE_AA)
+
+        cv2.imwrite('labeled_image.png', drawing)
 
         # TRY OUR FUNCTION:
         X_CP = pcl_to_camera1(self.env, context_env, cloud)

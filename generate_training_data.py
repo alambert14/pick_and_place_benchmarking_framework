@@ -109,7 +109,6 @@ def make_environment_model(
             lime_bag_bodies=lime_bag_bodies,
             rng=rng)
 
-
     elif draw:
         viz.load()
         diagram.Publish(context)
