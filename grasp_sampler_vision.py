@@ -178,24 +178,24 @@ def get_masked_pcl(diagram, cloud, mask):
 
     masked_pcl = []
     for_display = np.zeros([480, 640])
-    print(cloud)
     for p in cloud:
         u = (p[1] * fy) / p[2] + cy
         v = (p[0] * fx) / p[2] + cx
 
-        print(u,v)
-        print('got here!!!')
         try:
             if mask[round(u), round(v)]:
                 masked_pcl.append(p)
                 for_display[round(u), round(v)] = p[2]
         except IndexError:
             pass
-
+    if not masked_pcl:
+        return o3d.geometry.PointCloud()
     print('got to plot')
-    print(np.unique(for_display))
-    print(np.unique((for_display * 255).astype(np.uint8)))
     cv2.imwrite('masked_pcl.png', (for_display * 255).astype(np.uint8))
+    pcl = o3d.geometry.PointCloud()
+    print('shapeshape', np.array(masked_pcl).shape)
+    pcl.points = o3d.utility.Vector3dVector(np.array(masked_pcl))
+    return pcl
 
 def generate_grasp_candidate_antipodal(plant_context, cloud, plant, scene_graph,
                                        scene_graph_context, rng,
@@ -357,7 +357,9 @@ class GraspSamplerVision:
         self.model.eval()
         with torch.no_grad():
             prediction = self.model([rgb_image.to(torch.device('cpu'))])
-
+    
+        """
+        # >>>>>> for figures
         mask = prediction_to_masks(prediction)[0]
         cv2.imwrite('nice_mask.png', mask * 255)
         label = prediction[0]['labels'][0]
@@ -381,41 +383,55 @@ class GraspSamplerVision:
 
         cv2.imwrite('labeled_image.png', drawing)
 
-        # TRY OUR FUNCTION:
-        X_CP = pcl_to_camera1(self.env, context_env, cloud)
 
-        get_masked_pcl(self.env, X_CP, mask)
 
-        if cloud.is_empty():
-            return []
+        """
+        print(prediction)
+        masks = prediction_to_masks(prediction)
 
-        draw_open3d_point_cloud(self.viz.vis['cloud'], cloud, size=0.003)
-
-        context = self.diagram.CreateDefaultContext()
-        plant_context = self.plant.GetMyContextFromRoot(context)
-        scene_graph_context = self.sg.GetMyContextFromRoot(context)
-        costs = []
         X_Gs = []
+        costs = []
+        labels = []
 
-        for i in tqdm(range(100)):
-            cost, X_G = generate_grasp_candidate_antipodal(
-                plant_context, cloud,
-                self.plant, self.sg,
-                scene_graph_context,
-                self.rng)
-            if np.isfinite(cost):
-                costs.append(cost)
-                X_Gs.append(X_G)
+        for idx, mask in enumerate(masks):
+            print('label',prediction[0]['labels'][idx])
+            label = prediction[0]['labels'][idx] 
+            # TRY OUR FUNCTION:
+            X_CP = pcl_to_camera1(self.env, context_env, cloud)
 
-        indices = np.asarray(costs).argsort()[:5]
+            cloud = get_masked_pcl(self.env, X_CP, mask)
+
+            if cloud.is_empty() == 0:
+                continue
+
+            #draw_open3d_point_cloud(self.viz.vis['cloud'], cloud, size=0.003)
+
+            context = self.diagram.CreateDefaultContext()
+            plant_context = self.plant.GetMyContextFromRoot(context)
+            scene_graph_context = self.sg.GetMyContextFromRoot(context)
+
+            for i in tqdm(range(100)):
+                cost, X_G = generate_grasp_candidate_antipodal(
+                    plant_context, cloud,
+                    self.plant, self.sg,
+                    scene_graph_context,
+                    self.rng)
+                if np.isfinite(cost):
+                    costs.append(cost)
+                    X_Gs.append(X_G)
+                    labels.append(label)
+
+        index = np.asarray(costs).argsort()[0]
+        X_Gs_best = [X_Gs[index]]
+        """
         X_Gs_best = []
         for i in indices:
             X_Gs_best.append(X_Gs[i])
             if draw_grasp_candidates:
                 draw_grasp_candidate(X_Gs[i], prefix=f"{i}th best",
                                      draw_frames=False)
-
+        """
         # TODO: get label of grasp
-        label = 'Cucumber'
+        label = labels[index]
 
         return X_Gs_best, label
