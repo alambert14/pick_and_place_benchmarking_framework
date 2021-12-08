@@ -20,11 +20,11 @@ directives:
     X_PF:
       base_frame: world
       rotation: !Rpy { deg: [0.0, 0.0, 180.0 ]}
-      translation: [0.5, 0.05, -0.115]
+      translation: [0.5, 0.05, -0.015]
 
 - add_model:
     name: bin1
-    file: package://local/bin.sdf
+    file: package://local/bin_cucumber.sdf
 
 - add_weld:
     parent: bin1_origin
@@ -35,11 +35,11 @@ directives:
     X_PF:
         base_frame: world
         rotation: !Rpy { deg: [0.0, 0.0, 180.0]}
-        translation: [-0.5, 0.05, -0.115]
+        translation: [-0.5, 0.05, -0.015]
 
 - add_model:
     name: bin2
-    file: package://local/bin.sdf
+    file: package://local/bin_lime.sdf
 
 - add_weld:
     parent: bin2_origin
@@ -50,11 +50,11 @@ directives:
     X_PF:
         base_frame: world
         rotation: !Rpy { deg: [0.0, 0.0, 90.0]}
-        translation: [-0.05, 0.58, -0.015]
+        translation: [-0.05, 0.7, -0.015]
 
 - add_model:
     name: bin3
-    file: package://local/bin.sdf
+    file: package://local/bin_mango.sdf
 
 - add_weld:
     parent: bin3_origin
