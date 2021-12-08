@@ -1,5 +1,6 @@
 from typing import List, Dict
 import os.path
+import time
 
 import cv2
 import numpy as np
@@ -147,7 +148,7 @@ def make_environment_model(
 directive_file = os.path.join(
     os.getcwd(), 'models', 'iiwa_schunk_and_two_bins.yml')
 
-rng = np.random.default_rng()# seed=1215232)
+rng = np.random.default_rng(seed=111)# seed=1215232)
 # seed 12153432 looks kind of nice.
 
 # clean up visualization.
@@ -193,7 +194,7 @@ plant_env = env.GetSubsystemByName('plant')
 # context_plant = plant_env.GetMyContextFromRoot(context_env)
 # model_iiwa = plant_env.GetModelInstanceByName('iiwa')
 
-durations = np.array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
+durations = np.array([3, 2, 2, 1, 2, 2, 3, 2, 1, 3])
 # t_knots:
 # 0: Over bin 0
 # 1: Above grasp
@@ -216,7 +217,7 @@ schunk_setpoints = np.array([[-0.05, 0.05],
                              [0, 0],
                              [0, 0],
                              [0, 0],
-                             [0, 0],
+                             [-0.05, 0.05],
                              [-0.05, 0.05],
                              [-0.05, 0.05]])
 schunk_traj = PiecewisePolynomial.ZeroOrderHold(t_knots, schunk_setpoints.T)
@@ -245,10 +246,11 @@ while True:
         print('No more grasp candidates, terminating...')
         break
 
-    bin_id = label_to_bin[label]
+    bin_id = label_to_bin[label[0]]
 
     # bin0 home to "above" pose
     X_WE_grasp = X_Gs_best[0]
+    print(X_WE_grasp)
     X_WE_above = RigidTransform(X_WE_grasp)
     X_WE_above.set_translation(X_WE_grasp.translation() + np.array([0, 0, 0.3]))
     print(X_WE_above)
@@ -257,11 +259,13 @@ while True:
     X_WE_lower = RigidTransform(bin_pose(bin_id))
     X_WE_lower.set_translation(bin_pose(bin_id).translation() + np.array([0, 0, -0.3]))
 
+    start_time = time.time()
     # 0: Over bin 0  6: Over bin
     q_bin_to_0_traj, q_0_to_bin_traj = calc_joint_trajectory(
         X_WE_start=bin_pose(last_bin), X_WE_final=bin_pose(0), duration=durations[0],
         frame_E=frame_E, plant=plant_iiwa_controller,
         q_initial_guess=bin_qs[0])
+    print(f'calc_joint_traj time: {time.time() - start_time} ')
 
     # 1: Above grasp   5: Above bin 0
     q_0_to_above_traj, q_above_to_0_traj = calc_joint_trajectory(

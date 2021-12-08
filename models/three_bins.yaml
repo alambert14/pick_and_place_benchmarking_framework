@@ -34,8 +34,8 @@ directives:
     name: bin2_origin
     X_PF:
         base_frame: world
-        rotation: !Rpy { deg: [0.0, 0.0, 180.0]}
-        translation: [-0.5, 0.05, -0.015]
+        rotation: !Rpy { deg: [0.0, 0.0, 90.0]}
+        translation: [-0.05, 0.7, -0.015]
 
 - add_model:
     name: bin2
@@ -49,8 +49,8 @@ directives:
     name: bin3_origin
     X_PF:
         base_frame: world
-        rotation: !Rpy { deg: [0.0, 0.0, 90.0]}
-        translation: [-0.05, 0.7, -0.015]
+        rotation: !Rpy { deg: [0.0, 0.0, 180.0]}
+        translation: [-0.5, 0.05, -0.015]
 
 - add_model:
     name: bin3
