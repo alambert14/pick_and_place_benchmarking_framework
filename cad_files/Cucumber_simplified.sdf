@@ -46,6 +46,14 @@
             <drake:declare_convex xmlns:drake="drake.mit.edu"/>
           </mesh>
         </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>5</mu>
+              <mu2>5</mu2>
+            </ode>
+          </friction>
+        </surface>
         <drake:proximity_properties>
           <drake:mu_dynamic>0.5</drake:mu_dynamic>    
           <drake:mu_static>0.5</drake:mu_static>

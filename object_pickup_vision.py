@@ -36,7 +36,7 @@ bin_qs = {
     2: np.array([np.pi / 2, 0.1, 0, -1.2, 0, 1.6, 0]),
     3: np.array([-np.pi, 0.1, 0, -1.2, 0, 1.6, 0])
 }
-label_to_bin = {'Cucumber': 1, 'Mango': 2, 'Lime': 3}
+label_to_bin = {'Cucumber': 1, 'Lime': 2, 'Mango': 3}
 
 
 def make_environment_model(
@@ -147,7 +147,7 @@ def make_environment_model(
 directive_file = os.path.join(
     os.getcwd(), 'models', 'iiwa_schunk_and_two_bins.yml')
 
-rng = np.random.default_rng(seed=1215232)
+rng = np.random.default_rng()# seed=1215232)
 # seed 12153432 looks kind of nice.
 
 # clean up visualization.
@@ -156,44 +156,33 @@ v.delete()
 
 # build environment and grasp sampler.
 env, context_env, plant_iiwa_controller, sim = make_environment_model(
-    directive=directive_file, rng=rng, draw=True, n_objects=6)
+    directive=directive_file, rng=rng, draw=True, n_objects=7)
 grasp_sampler = GraspSamplerVision(env)
 
-#%% home EE poses for bin1 and bin2.
+#%% home EE poses for all bins
 context_iiwa_plant = plant_iiwa_controller.CreateDefaultContext()
 iiwa_model = plant_iiwa_controller.GetModelInstanceByName('iiwa')
 frame_E = plant_iiwa_controller.GetBodyByName('wsg_equivalent').body_frame()
 
-plant_iiwa_controller.SetPositions(context_iiwa_plant, bin_qs[0])
-X_WE_bin0 = plant_iiwa_controller.CalcRelativeTransform(
-    context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
-
-plant_iiwa_controller.SetPositions(context_iiwa_plant, bin_qs[1])
-X_WE_bin1 = plant_iiwa_controller.CalcRelativeTransform(
-    context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
+def bin_pose(bin_id):
+    plant_iiwa_controller.SetPositions(context_iiwa_plant, bin_qs[bin_id])
+    return plant_iiwa_controller.CalcRelativeTransform(
+        context_iiwa_plant, plant_iiwa_controller.world_frame(), frame_E)
 
 # commonly used trajectories
 nq = 7
 
-def get_bin_traj(bin_id):
-    q_traj = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
-        [0, 3], np.vstack([bin_qs[0], bin_qs[bin_id]]).T,
-        np.zeros(nq), np.zeros((nq)))
-
-    return q_traj
-
-
-def get_return_traj(bin_id):
-    q_traj = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
-        [0, 3], np.vstack([bin_qs[bin_id], bin_qs[1]]).T,
-        np.zeros(nq), np.zeros((nq)))
-
-    return q_traj
+# def get_bin_traj(bin_id):
+#     q_traj = PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
+#         [0, durations[1]], np.vstack([bin_qs[0], bin_qs[bin_id]]).T,
+#         np.zeros(nq), np.zeros((nq)))
+#     return q_traj
 
 
-q_traj_bin_hold = PiecewisePolynomial.ZeroOrderHold(
-    [0, 1], np.vstack([bin_qs[1], bin_qs[1]]).T)
-
+# def get_return_traj(bin_id):
+#     return PiecewisePolynomial.CubicWithContinuousSecondDerivatives(
+#         [0, durations[0]], np.vstack([bin_qs[bin_id], bin_qs[0]]).T,
+#         np.zeros(nq), np.zeros((nq)))
 
 #%%
 robot_traj_source = env.GetSubsystemByName('robot_traj_source')
@@ -204,22 +193,26 @@ plant_env = env.GetSubsystemByName('plant')
 # context_plant = plant_env.GetMyContextFromRoot(context_env)
 # model_iiwa = plant_env.GetModelInstanceByName('iiwa')
 
-durations = np.array([3, 2, 2, 3, 1, 3, 2, 3, 1])
+durations = np.array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
 # t_knots:
-# 0: 1
-# 1: 0
-# 2: above
-# 3: grasp
-# 4: grasp hold
-# 5: above
-# 6: 0
-# 7: 1
-# 8: 1 hold
+# 0: Over bin 0
+# 1: Above grasp
+# 2: Grasp
+# 3: Grasp hold
+#       close gripper
+# 4: Above grasp
+# 5: Above bin 0
+# 6: Over bin
+# 7: Lower to bin
+# 8: Bin hold
+#       open gripper
+# 9: Over bin
 t_knots = np.cumsum(np.hstack([[0], durations]))
 schunk_setpoints = np.array([[-0.05, 0.05],
                              [-0.05, 0.05],
                              [-0.05, 0.05],
-                             [-0.05, 0.05],
+                             [0, 0],
+                             [0, 0],
                              [0, 0],
                              [0, 0],
                              [0, 0],
@@ -234,14 +227,16 @@ viz.start_recording()
 
 cam1 = env.GetSubsystemByName('camera1')
 cam1_context = cam1.GetMyMutableContextFromRoot(context_env)
+
+last_bin = 0  # Keep track of where the arm was in the last cycle
 while True:
     rgb_image = cam1.GetOutputPort('color_image').Eval(cam1_context).data
-    print(type(rgb_image))
-    print(rgb_image.shape)
-    img = rgb_image[:,:,:-1]
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    file = 'test.png'
-    cv2.imwrite(file, img)
+    # print(type(rgb_image))
+    # print(rgb_image.shape)
+    # img = rgb_image[:,:,:-1]
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # file = 'test.png'
+    # cv2.imwrite(file, img)
     # Sample some grasps.
     print('Sampling new grasps...')
     X_Gs_best, label = grasp_sampler.sample_grasp_candidates(
@@ -250,39 +245,65 @@ while True:
         print('No more grasp candidates, terminating...')
         break
 
+    bin_id = label_to_bin[label]
+
     # bin0 home to "above" pose
     X_WE_grasp = X_Gs_best[0]
     X_WE_above = RigidTransform(X_WE_grasp)
     X_WE_above.set_translation(X_WE_grasp.translation() + np.array([0, 0, 0.3]))
     print(X_WE_above)
-    q_traj_0_to_above, q_traj_above_to_0 = calc_joint_trajectory(
-        X_WE_start=X_WE_bin0, X_WE_final=X_WE_above, duration=durations[2],
+
+    # Lower bin pose
+    X_WE_lower = RigidTransform(bin_pose(bin_id))
+    X_WE_lower.set_translation(bin_pose(bin_id).translation() + np.array([0, 0, -0.3]))
+
+    # 0: Over bin 0  6: Over bin
+    q_bin_to_0_traj, q_0_to_bin_traj = calc_joint_trajectory(
+        X_WE_start=bin_pose(last_bin), X_WE_final=bin_pose(0), duration=durations[0],
         frame_E=frame_E, plant=plant_iiwa_controller,
         q_initial_guess=bin_qs[0])
 
-    q_1_to_0, _ = calc_joint_trajectory(
-        X_WE_start=X_WE_bin1, X_WE_final=X_WE_bin0, duration=durations[1],
+    # 1: Above grasp   5: Above bin 0
+    q_0_to_above_traj, q_above_to_0_traj = calc_joint_trajectory(
+        X_WE_start=bin_pose(0), X_WE_final=X_WE_above, duration=durations[1],
         frame_E=frame_E, plant=plant_iiwa_controller,
-        q_initial_guess=bin_qs[1])
+        q_initial_guess=bin_qs[0])
 
-    # above to grasp
-    q_traj_above_to_grasp, q_traj_grasp_to_above = calc_joint_trajectory(
-        X_WE_start=X_WE_above, X_WE_final=X_WE_grasp, duration=durations[3],
+    # 2: Grasp             4: Above grasp
+    q_above_to_grasp_traj, q_grasp_to_above_traj = calc_joint_trajectory(
+        X_WE_start=X_WE_above, X_WE_final=X_WE_grasp, duration=durations[2],
         frame_E=frame_E, plant=plant_iiwa_controller,
-        q_initial_guess=q_traj_0_to_above.value(durations[2]).ravel())
+        q_initial_guess=q_0_to_above_traj.value(durations[1]).ravel())
 
-    # hold
-    q_grasping = q_traj_above_to_grasp.value(durations[4]).ravel()
-    q_traj_grasp_hold = PiecewisePolynomial.ZeroOrderHold(
-        [0, durations[4]], np.vstack([q_grasping, q_grasping]).T)
+    # 3: Grasp hold
+    q_grasping = q_above_to_grasp_traj.value(durations[2]).ravel()  # Evaluate grasp point
+    q_grasp_hold_traj = PiecewisePolynomial.ZeroOrderHold(
+        [0, durations[3]], np.vstack([q_grasping, q_grasping]).T)
 
-    bin_id = label_to_bin[label]
-    q_0_to_bin_traj = get_bin_traj(bin_id)
-    q_return_traj = get_return_traj(bin_id)
+    # 7: Lower to bin    # 9: Over bin
+    q_bin_to_lower_traj, q_lower_to_bin_traj = calc_joint_trajectory(
+        X_WE_start=bin_pose(bin_id), X_WE_final=X_WE_lower, duration=durations[7],
+        frame_E=frame_E, plant=plant_iiwa_controller,
+        q_initial_guess=bin_qs[bin_id])
+
+    # 8: Over bin hold
+    q_lower = q_bin_to_lower_traj.value(durations[7]).ravel()
+    q_lower_over_bin_hold_traj = PiecewisePolynomial.ZeroOrderHold(
+        [0, durations[8]], np.vstack([q_lower, q_lower]).T)
+
     q_traj = concatenate_traj_list(
-        [q_return_traj, q_1_to_0, q_traj_0_to_above, q_traj_above_to_grasp,
-         q_traj_grasp_hold,
-         q_traj_grasp_to_above, q_traj_above_to_0, q_0_to_bin_traj, q_traj_bin_hold])
+        [q_bin_to_0_traj,  # 0: Over bin 0
+         q_0_to_above_traj,  # 1: Above grasp
+         q_above_to_grasp_traj,  # 2: Grasp
+         q_grasp_hold_traj,  # 3: Grasp hold
+         q_grasp_to_above_traj,  # 4: Above grasp
+         q_above_to_0_traj,  # 5: Above bin 0
+         q_0_to_bin_traj,  # 6: Over bin
+         q_bin_to_lower_traj,  # 7: Lower to bin
+         q_lower_over_bin_hold_traj,  # 8: Over bin hold
+         q_lower_to_bin_traj])  # 9: Over bin
+
+    last_bin = bin_id
 
     # update time in trajectory sources.
     t_current = context_env.get_time()

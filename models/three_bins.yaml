@@ -24,7 +24,7 @@ directives:
 
 - add_model:
     name: bin1
-    file: package://local/bin_ocado.sdf
+    file: package://local/bin.sdf
 
 - add_weld:
     parent: bin1_origin
@@ -39,7 +39,7 @@ directives:
 
 - add_model:
     name: bin2
-    file: package://local/bin_ocado.sdf
+    file: package://local/bin.sdf
 
 - add_weld:
     parent: bin2_origin
@@ -54,7 +54,7 @@ directives:
 
 - add_model:
     name: bin3
-    file: package://local/bin_ocado.sdf
+    file: package://local/bin.sdf
 
 - add_weld:
     parent: bin3_origin
