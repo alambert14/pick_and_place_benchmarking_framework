@@ -41,12 +41,20 @@ def grasp_candidate_cost(plant_context, masked_cloud, whole_cloud, plant, scene_
     p_GC = X_GW.multiply(pts)
 
     # Crop to a region inside of the finger box.
-    crop_min = [-.05, 0.1, -0.00625]
-    crop_max = [.05, 0.1125, 0.00625]
+    #crop_min = [-.05, 0.1, -0.00625]
+    #crop_max = [.05, 0.1125, 0.00625]
+    crop_min = [-0.054, 0.036, -0.01]
+    crop_max = [0.054, 0.117, 0.01]
     indices = np.all((crop_min[0] <= p_GC[0, :], p_GC[0, :] <= crop_max[0],
                       crop_min[1] <= p_GC[1, :], p_GC[1, :] <= crop_max[1],
                       crop_min[2] <= p_GC[2, :], p_GC[2, :] <= crop_max[2]),
                      axis=0)
+
+    # nonempy constraint
+    if not indices.any():
+        #print('empty!')
+        return np.inf
+
 
     if meshcat:
         draw_points(meshcat["points"], pts[:, indices], [1., 0, 0], size=0.01)
@@ -66,6 +74,7 @@ def grasp_candidate_cost(plant_context, masked_cloud, whole_cloud, plant, scene_
         if textbox:
             textbox.value = "Gripper is colliding with the sink!\n"
             textbox.value += f"cost: {cost}"
+        #print('collision! with wall')
         return cost
 
     # Check collisions between the gripper and the point cloud
@@ -78,16 +87,17 @@ def grasp_candidate_cost(plant_context, masked_cloud, whole_cloud, plant, scene_
             if textbox:
                 textbox.value = "Gripper is colliding with the point cloud!\n"
                 textbox.value += f"cost: {cost}"
+            #print('collision w point cloud!')
             return cost
 
     n_GC = X_GW.rotation().multiply(np.asarray(masked_cloud.normals)[indices, :].T)
 
     # Penalize deviation of the gripper from vertical.
     # weight * -dot([0, 0, -1], R_G * [0, 1, 0]) = weight * R_G[2,1]
-    cost = 20.0 * X_G.rotation().matrix()[2, 1]
+    cost = 10.0 * X_G.rotation().matrix()[2, 1]
 
     # Reward sum |dot product of normals with gripper x|^2
-    cost -= np.sum(n_GC[0, :] ** 2)
+    cost -= 20 * np.sum(n_GC[0, :] ** 2)
 
     if textbox:
         textbox.value = f"cost: {cost}\n"
@@ -117,11 +127,8 @@ def process_point_cloud(diagram, context, cameras, bin_name):
     # Evaluate the camera output ports to get the images.
     merged_pcd = o3d.geometry.PointCloud()
     for c in cameras:
-        print(c)
         point_cloud = diagram.GetOutputPort(f"{c}_point_cloud").Eval(context)
-        print(f'point cloud shape: {point_cloud.size()}')
         pcd = create_open3d_point_cloud(point_cloud)
-        print(f'open3d shape: {np.asarray(pcd.points)}')
 
         # Crop to region of interest.
         pcd = pcd.crop(
@@ -142,7 +149,6 @@ def process_point_cloud(diagram, context, cameras, bin_name):
         merged_pcd += pcd
 
     # Voxelize down-sample.  (Note that the normals still look reasonable)'
-    print(f'open3d shape: {np.asarray(merged_pcd.points).shape}')
     return merged_pcd.voxel_down_sample(voxel_size=0.005)
 
 # From pose_estimation_icp.ipynb
@@ -176,7 +182,7 @@ def pcl_to_camera1(diagram, context, cloud):
 
     return cloud.transform(X_CW.GetAsMatrix4()) # X_CP.T
 
-def get_masked_pcl(diagram, cloud, mask):
+def get_masked_pcl(diagram, cloud, mask,idx):
     """
     cloud: open3d PointCloud in camera1 frame
     """
@@ -203,10 +209,8 @@ def get_masked_pcl(diagram, cloud, mask):
             pass
     if not masked_pcl:
         return o3d.geometry.PointCloud()
-    print('got to plot')
-    cv2.imwrite('masked_pcl.png', (for_display * 255).astype(np.uint8))
+    cv2.imwrite(f'masked_pcl_{idx}.png', (for_display * 255).astype(np.uint8))
     pcl = o3d.geometry.PointCloud()
-    print('shapeshape', np.array(masked_pcl).shape)
     pcl.points = o3d.utility.Vector3dVector(np.array(masked_pcl))
     pcl.normals = o3d.utility.Vector3dVector(np.array(normals))
 
@@ -217,14 +221,13 @@ def generate_grasp_candidate_antipodal(plant_context, masked_cloud, whole_cloud,
                                        meshcat_vis=None):
     """
     Picks a random point in the cloud, and aligns the robot finger with the
-     normal of that pixel.
+     normal of that pixel.ers(0, len(masked_cloud.points) - 1)
     The rotation around the normal axis is drawn from a uniform distribution
      over [min_roll, max_roll].
     """
     n_tries = 0
     n_tries_ub = 100
     while n_tries < n_tries_ub:
-        print(masked_cloud.points)
         index = rng.integers(0, len(masked_cloud.points) - 1)
         p_WS = np.asarray(masked_cloud.points[index])
         n_WS = np.asarray(masked_cloud.normals[index])
@@ -311,16 +314,18 @@ def prediction_to_masks(prediction):
     for i in range(prediction[0]['masks'].size()[0]):
         print(f'label is: {prediction[0]["labels"][i]}')
         img_array = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
-        _, thresh = cv2.threshold(img_array,90,255,cv2.THRESH_BINARY)
-        dilation = cv2.dilate(thresh,np.ones((5,5)).astype(np.uint8), iterations = 1)
+        print(np.unique(img_array))
+        _, thresh = cv2.threshold(img_array,30,255,cv2.THRESH_BINARY)
+        dilation = cv2.dilate(thresh,np.ones((5,5)).astype(np.uint8), iterations = 2)
         thresh = cv2.erode(dilation,np.ones((5,5)).astype(np.uint8), iterations = 1)
+        cv2.imwrite(f'mask_{i}.png', thresh)
         masks.append((thresh == 255).astype(np.uint8))
 
     return masks
 
 class GraspSamplerVision:
     def __init__(self, environment: Diagram):
-        self.rng = np.random.default_rng(seed=10001)
+        self.rng = np.random.default_rng()
         self.env = environment
 
         # Another diagram for the objects the robot "knows about":
@@ -423,29 +428,35 @@ class GraspSamplerVision:
             # TRY OUR FUNCTION:
             X_CP = pcl_to_camera1(self.env, context_env, cloud)
 
-            masked_cloud = get_masked_pcl(self.env, X_CP, mask)
+            masked_cloud = get_masked_pcl(self.env, X_CP, mask,idx)
 
             if masked_cloud.is_empty():
+                print('NOPE')
+                print('bad label', label)
                 continue
 
             #draw_open3d_point_cloud(self.viz.vis['cloud'], cloud, size=0.003)
 
 
-            masked_cloud = masked_cloud.transform(X_WC.GetAsMatrix4())
+            masked_cloud = masked_cloud.transform(X_WC.inverse().GetAsMatrix4())
+            print('CONTINUING WITH',label)
 
-            for i in tqdm(range(100)):
+            for i in tqdm(range(200)):
                 cost, X_G = generate_grasp_candidate_antipodal(
                     plant_context, masked_cloud, cloud,
                     self.plant, self.sg,
                     scene_graph_context,
                     self.rng)
                 if np.isfinite(cost):
+                    print('found sth for', label)
                     costs.append(cost)
                     X_Gs.append(X_G)
                     labels.append(label)
-
-        index = np.asarray(costs).argsort()[0]
-        X_Gs_best = [X_Gs[index]]
+        print('COSTS', costs)
+        print('labels', np.unique(np.array(labels)))
+        print('sorted costs', np.asarray(costs).argsort())
+        indices = np.asarray(costs).argsort()[:5]
+        X_Gs_best = [X_Gs[i] for i in indices]
         """
         X_Gs_best = []
         for i in indices:
@@ -455,6 +466,7 @@ class GraspSamplerVision:
                                      draw_frames=False)
         """
         # TODO: get label of grasp
-        label = labels[index]
+        label = [labels[i] for i in indices]
+        print('BESTEST VEGTALS OR FROOTS OF ALL:', [label_to_string[int(l)] for l in label])
 
-        return X_Gs_best, label_to_string[int(label)]
+        return X_Gs_best, [label_to_string[int(l)] for l in label]
