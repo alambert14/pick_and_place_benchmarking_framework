@@ -24,8 +24,7 @@ from build_sim_diagram import (add_controlled_iiwa_and_trj_source, add_objects,
     set_object_drop_pose)
 
 #%%
-# object SDFs.
-# object_names = ['Lime', 'Cucumber', 'Mango']
+# object SDFs
 object_names = ['Mango', 'Cucumber', 'Lime']
 sdf_dir = os.path.join(os.path.dirname(__file__), 'cad_files')
 object_sdfs = {name: os.path.join(sdf_dir, name + '_simplified.sdf')
@@ -148,7 +147,7 @@ def make_environment_model(
 directive_file = os.path.join(
     os.getcwd(), 'models', 'iiwa_schunk_and_two_bins.yml')
 
-rng = np.random.default_rng(seed=111)# seed=1215232)
+rng = np.random.default_rng()# seed=19)# seed=1215232)
 # seed 12153432 looks kind of nice.
 
 # clean up visualization.
@@ -157,7 +156,7 @@ v.delete()
 
 # build environment and grasp sampler.
 env, context_env, plant_iiwa_controller, sim = make_environment_model(
-    directive=directive_file, rng=rng, draw=True, n_objects=7)
+    directive=directive_file, rng=rng, draw=True, n_objects=10)
 grasp_sampler = GraspSamplerVision(env)
 
 #%% home EE poses for all bins
@@ -260,12 +259,18 @@ while True:
     X_WE_lower.set_translation(bin_pose(bin_id).translation() + np.array([0, 0, -0.3]))
 
     start_time = time.time()
-    # 0: Over bin 0  6: Over bin
-    q_bin_to_0_traj, q_0_to_bin_traj = calc_joint_trajectory(
+    # 0: Over bin 0
+    q_bin_to_0_traj, _ = calc_joint_trajectory(
         X_WE_start=bin_pose(last_bin), X_WE_final=bin_pose(0), duration=durations[0],
         frame_E=frame_E, plant=plant_iiwa_controller,
+        q_initial_guess=bin_qs[last_bin])
+
+    # 6: Over bin
+    q_0_to_bin_traj, _ = calc_joint_trajectory(
+        X_WE_start=bin_pose(0), X_WE_final=bin_pose(bin_id), duration=durations[6],
+        frame_E=frame_E, plant=plant_iiwa_controller,
         q_initial_guess=bin_qs[0])
-    print(f'calc_joint_traj time: {time.time() - start_time} ')
+    print(f'calc_joint_traj time: {time.time() - start_time}')
 
     # 1: Above grasp   5: Above bin 0
     q_0_to_above_traj, q_above_to_0_traj = calc_joint_trajectory(

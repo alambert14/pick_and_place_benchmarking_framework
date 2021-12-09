@@ -94,10 +94,10 @@ def grasp_candidate_cost(plant_context, masked_cloud, whole_cloud, plant, scene_
 
     # Penalize deviation of the gripper from vertical.
     # weight * -dot([0, 0, -1], R_G * [0, 1, 0]) = weight * R_G[2,1]
-    cost = 10.0 * X_G.rotation().matrix()[2, 1]
+    cost = 20.0 * X_G.rotation().matrix()[2, 1]
 
     # Reward sum |dot product of normals with gripper x|^2
-    cost -= 20 * np.sum(n_GC[0, :] ** 2)
+    cost -= 2 * np.sqrt(np.sum(n_GC[0, :] ** 2))
 
     if textbox:
         textbox.value = f"cost: {cost}\n"
@@ -266,6 +266,8 @@ def generate_grasp_candidate_antipodal(plant_context, masked_cloud, whole_cloud,
     min_roll = -np.pi / 3.0
     max_roll = np.pi / 3.0
     alpha = np.array([0.5, 0.65, 0.35, 0.8, 0.2, 1.0, 0.0])
+
+    min_cost, best_X_G = (np.inf, None)
     for theta in (min_roll + (max_roll - min_roll) * alpha):
         # Rotate the object in the hand by a random rotation (around the normal).
         R_WG2 = R_WG.multiply(RotationMatrix.MakeXRotation(theta))
@@ -277,13 +279,16 @@ def generate_grasp_candidate_antipodal(plant_context, masked_cloud, whole_cloud,
         X_G = RigidTransform(R_WG2, p_WG)
         plant.SetFreeBodyPose(plant_context, body, X_G)
         cost = grasp_candidate_cost(plant_context, masked_cloud, whole_cloud, plant, scene_graph,
-                                    scene_graph_context, adjust_X_G=True,
+                                    scene_graph_context, adjust_X_G=False,
                                     meshcat=meshcat_vis)
         X_G = plant.GetFreeBodyPose(plant_context, body)
-        if np.isfinite(cost):
-            return cost, X_G
+        if np.isfinite(cost) and cost < min_cost:
+            print(f'better theta: {theta}')
+            print(X_G)
+            min_cost = cost
+            best_X_G = X_G
 
-    return np.inf, None
+    return min_cost, best_X_G
 
 
 def draw_grasp_candidate(X_G, prefix='gripper', draw_frames=True):
@@ -316,7 +321,7 @@ def prediction_to_masks(prediction):
         img_array = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
         print(np.unique(img_array))
         _, thresh = cv2.threshold(img_array,30,255,cv2.THRESH_BINARY)
-        dilation = cv2.dilate(thresh,np.ones((5,5)).astype(np.uint8), iterations = 2)
+        dilation = cv2.dilate(thresh,np.ones((5,5)).astype(np.uint8), iterations = 1)
         thresh = cv2.erode(dilation,np.ones((5,5)).astype(np.uint8), iterations = 1)
         cv2.imwrite(f'mask_{i}.png', thresh)
         masks.append((thresh == 255).astype(np.uint8))
@@ -359,7 +364,7 @@ class GraspSamplerVision:
         self.viz = viz
 
         self.model = train_model.get_model_instance_segmentation(4)
-        self.model.load_state_dict(torch.load('../veggie_master_20000.pth', map_location=torch.device('cpu')))
+        self.model.load_state_dict(torch.load('../veggie_master_40000.pth', map_location=torch.device('cpu')))
 
 
     def sample_grasp_candidates(self, context_env, draw_grasp_candidates=True):
@@ -424,7 +429,7 @@ class GraspSamplerVision:
 
         for idx, mask in enumerate(masks):
             print('label',prediction[0]['labels'][idx])
-            label = prediction[0]['labels'][idx] 
+            label = prediction[0]['labels'][idx]
             # TRY OUR FUNCTION:
             X_CP = pcl_to_camera1(self.env, context_env, cloud)
 
@@ -435,10 +440,12 @@ class GraspSamplerVision:
                 print('bad label', label)
                 continue
 
-            #draw_open3d_point_cloud(self.viz.vis['cloud'], cloud, size=0.003)
 
+            draw_open3d_point_cloud(self.viz.vis['cloud'], cloud, size=0.03)
 
-            masked_cloud = masked_cloud.transform(X_WC.inverse().GetAsMatrix4())
+            masked_cloud = masked_cloud.transform(X_WC.GetAsMatrix4())
+            draw_open3d_point_cloud(self.viz.vis['cloud'], masked_cloud, size=0.03)
+            print(np.unique(np.asarray(masked_cloud.points)))
             print('CONTINUING WITH',label)
 
             for i in tqdm(range(200)):
@@ -468,5 +475,6 @@ class GraspSamplerVision:
         # TODO: get label of grasp
         label = [labels[i] for i in indices]
         print('BESTEST VEGTALS OR FROOTS OF ALL:', [label_to_string[int(l)] for l in label])
+        print(np.unique(np.asarray(masked_cloud.points)))
 
         return X_Gs_best, [label_to_string[int(l)] for l in label]

@@ -12,7 +12,7 @@ def calc_joint_trajectory(X_WE_start: RigidTransform,
                           duration: float,
                           frame_E: BodyFrame, plant: MultibodyPlant,
                           q_initial_guess: np.ndarray,
-                          n_knots: int = 15):
+                          n_knots: int = 5):
     R_WE_traj = PiecewiseQuaternionSlerp(
         [0, duration], [X_WE_start.rotation().ToQuaternion(),
                         X_WE_final.rotation().ToQuaternion()])
