@@ -32,7 +32,7 @@ def add_objects(n_objects: int, obj_names: List[str], obj_sdfs: Dict[str, str],
     lime_bag_bodies = []
     n_bags_of_lime = 0
     produce_amounts = rng.integers(low=1, high=n_objects, size=len(object_names))
-    produce_amounts = (2, 3, 0)
+    #produce_amounts = (2, 3, 0)
 
     #print('produce amts:', produce_amounts)
     for amt, obj_name in zip(produce_amounts, object_names):
